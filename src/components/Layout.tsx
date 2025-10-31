@@ -3,33 +3,49 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, LogOut, Users, UserCog, BarChart3, FileUp, Home } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-
 interface LayoutProps {
   children: ReactNode;
 }
-
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { profile, signOut } = useAuth();
+export const Layout: React.FC<LayoutProps> = ({
+  children
+}) => {
+  const {
+    profile,
+    signOut
+  } = useAuth();
   const location = useLocation();
-
   const isAdmin = profile?.role === "admin";
   const basePath = isAdmin ? "/admin" : "/counselor";
-
-  const navigation = isAdmin
-    ? [
-        { name: "Dashboard", href: "/admin", icon: Home },
-        { name: "Leads", href: "/admin/leads", icon: Users },
-        { name: "Users", href: "/admin/users", icon: UserCog },
-        { name: "Reports", href: "/admin/reports", icon: BarChart3 },
-        { name: "Import", href: "/admin/import", icon: FileUp },
-      ]
-    : [
-        { name: "Dashboard", href: "/counselor", icon: Home },
-        { name: "My Leads", href: "/counselor/leads", icon: Users },
-      ];
-
-  return (
-    <div className="flex min-h-screen">
+  const navigation = isAdmin ? [{
+    name: "Dashboard",
+    href: "/admin",
+    icon: Home
+  }, {
+    name: "Leads",
+    href: "/admin/leads",
+    icon: Users
+  }, {
+    name: "Users",
+    href: "/admin/users",
+    icon: UserCog
+  }, {
+    name: "Reports",
+    href: "/admin/reports",
+    icon: BarChart3
+  }, {
+    name: "Import",
+    href: "/admin/import",
+    icon: FileUp
+  }] : [{
+    name: "Dashboard",
+    href: "/counselor",
+    icon: Home
+  }, {
+    name: "My Leads",
+    href: "/counselor/leads",
+    icon: Users
+  }];
+  return <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="w-64 border-r bg-sidebar">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
@@ -37,21 +53,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <span className="font-semibold text-sidebar-foreground">Build Abroad</span>
         </div>
         <nav className="space-y-1 p-4">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.href;
-            return (
-              <Link key={item.name} to={item.href}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                >
+          {navigation.map(item => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.href;
+          return <Link key={item.name} to={item.href}>
+                <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start text-stone-50 bg-slate-700 hover:bg-slate-600 mx-0 font-thin rounded-sm">
                   <Icon className="mr-2 h-4 w-4" />
                   {item.name}
                 </Button>
-              </Link>
-            );
-          })}
+              </Link>;
+        })}
         </nav>
       </aside>
 
@@ -74,6 +85,5 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
-    </div>
-  );
+    </div>;
 };
