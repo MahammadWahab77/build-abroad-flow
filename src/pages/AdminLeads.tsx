@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,8 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
-import { Search, Filter, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useNavigate } from "react-router-dom";
+import { Search, Filter, UserPlus, Loader2, ChevronDown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const STAGES = [
   "Yet to Assign",
@@ -39,13 +44,26 @@ const STAGES = [
 ];
 
 export default function AdminLeads() {
-  const [search, setSearch] = useState("");
-  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
+  const [selectedCounselor, setSelectedCounselor] = useState("");
+  const [showBulkAssign, setShowBulkAssign] = useState(false);
+  
+  // Dynamic filter states
+  const [countryFilter, setCountryFilter] = useState("");
+  const [intakeFilter, setIntakeFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [counselorFilter, setCounselorFilter] = useState("");
 
-  const { data: leads, isLoading } = useQuery({
-    queryKey: ["admin-leads", search, selectedStage],
+  // Fetch leads
+  const { data: leads = [], isLoading: leadsLoading } = useQuery({
+    queryKey: ["admin-leads"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("leads")
         .select(`
           *,
@@ -53,25 +71,104 @@ export default function AdminLeads() {
         `)
         .order("updated_at", { ascending: false });
 
-      if (selectedStage) {
-        query = query.eq("current_stage", selectedStage);
-      }
+      if (error) throw error;
+      return data.map((lead: any) => ({
+        ...lead,
+        counselorName: lead.users?.name || null
+      })) || [];
+    },
+  });
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
-      }
+  // Fetch counselors
+  const { data: counselors = [] } = useQuery({
+    queryKey: ["counselors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("role", "counselor")
+        .eq("is_active", true);
 
-      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
   });
 
+  // Get unique filter values from leads data
+  const countries = Array.from(new Set(leads.map((lead: any) => lead.country).filter(Boolean))) as string[];
+  const intakes = Array.from(new Set(leads.map((lead: any) => lead.intake).filter(Boolean))) as string[];
+  const sources = Array.from(new Set(leads.map((lead: any) => lead.source).filter(Boolean))) as string[];
+
+  // Enhanced filtering with multiple criteria
+  const filteredLeads = leads.filter((lead: any) => {
+    const matchesStage = selectedStages.length === 0 || selectedStages.includes(lead.current_stage);
+    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (lead.phone && lead.phone.includes(searchTerm));
+    const matchesCountry = !countryFilter || countryFilter === "all-countries" || lead.country === countryFilter;
+    const matchesIntake = !intakeFilter || intakeFilter === "all-intakes" || lead.intake === intakeFilter;
+    const matchesSource = !sourceFilter || sourceFilter === "all-sources" || lead.source === sourceFilter;
+    const matchesCounselor = !counselorFilter || counselorFilter === "all-counselors" || 
+      (lead.counselor_id && lead.counselor_id.toString() === counselorFilter) ||
+      (counselorFilter === "unassigned" && !lead.counselor_id);
+    
+    return matchesStage && matchesSearch && matchesCountry && matchesIntake && matchesSource && matchesCounselor;
+  });
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: async ({ leadIds, counselorId }: { leadIds: number[], counselorId: number }) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ counselor_id: counselorId })
+        .in("id", leadIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+      toast({ title: "Success", description: "Leads assigned successfully" });
+      setSelectedLeads([]);
+      setSelectedCounselor("");
+      setShowBulkAssign(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to assign leads", variant: "destructive" });
+    }
+  });
+
+  const handleSelectLead = (leadId: number) => {
+    setSelectedLeads(prev => 
+      prev.includes(leadId) 
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedLeads.length === filteredLeads.length) {
+      setSelectedLeads([]);
+    } else {
+      setSelectedLeads(filteredLeads.map((lead: any) => lead.id));
+    }
+  };
+
+  const handleBulkAssign = () => {
+    if (selectedLeads.length > 0 && selectedCounselor) {
+      bulkAssignMutation.mutate({ leadIds: selectedLeads, counselorId: parseInt(selectedCounselor) });
+    }
+  };
+
+  const handleViewLead = (leadId: number) => {
+    navigate(`/lead/${leadId}`);
+  };
+
   const getStageColor = (stage: string) => {
-    if (["Commission Received", "Tuition Fee Paid"].includes(stage)) return "bg-success";
-    if (["Not Interested", "Irrelevant Lead"].includes(stage)) return "bg-destructive";
-    if (["Yet to Assign", "Yet to Contact"].includes(stage)) return "bg-warning";
-    return "bg-primary";
+    const stageIndex = STAGES.indexOf(stage);
+    if (stageIndex <= 1) return "bg-destructive/10 text-destructive";
+    if (stageIndex <= 5) return "bg-warning/10 text-warning";
+    if (stageIndex <= 10) return "bg-primary/10 text-primary";
+    if (stageIndex <= 14) return "bg-purple-500/10 text-purple-700";
+    return "bg-success/10 text-success";
   };
 
   return (
@@ -82,102 +179,306 @@ export default function AdminLeads() {
             <h1 className="text-3xl font-bold">All Leads</h1>
             <p className="text-muted-foreground">Manage all student leads</p>
           </div>
-          <Button>Import Leads</Button>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name, email, or phone..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="w-64">
-                <select
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={selectedStage || ""}
-                  onChange={(e) => setSelectedStage(e.target.value || null)}
-                >
-                  <option value="">All Stages</option>
-                  {STAGES.map((stage) => (
-                    <option key={stage} value={stage}>
-                      {stage}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* Controls */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Multi-Stage Filter */}
+            <div className="flex-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    <div className="flex items-center">
+                      <Filter className="h-4 w-4 mr-2" />
+                      {selectedStages.length === 0 
+                        ? "All Stages" 
+                        : selectedStages.length === 1 
+                        ? selectedStages[0]
+                        : `${selectedStages.length} stages selected`
+                      }
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search stages..." className="h-9" />
+                    <CommandEmpty>No stage found.</CommandEmpty>
+                    <CommandList>
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => setSelectedStages([])}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            checked={selectedStages.length === 0}
+                            className="mr-2"
+                          />
+                          <span>All Stages</span>
+                        </CommandItem>
+                        {STAGES.map((stage) => (
+                          <CommandItem
+                            key={stage}
+                            onSelect={() => {
+                              setSelectedStages(prev => 
+                                prev.includes(stage)
+                                  ? prev.filter(s => s !== stage)
+                                  : [...prev, stage]
+                              );
+                            }}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              checked={selectedStages.includes(stage)}
+                              className="mr-2"
+                            />
+                            <span>{stage}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Results */}
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search leads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Bulk Actions */}
+            {selectedLeads.length > 0 && (
+              <Button 
+                onClick={() => setShowBulkAssign(true)}
+                className="whitespace-nowrap"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign Selected ({selectedLeads.length})
+              </Button>
+            )}
+          </div>
+
+          {/* Additional Filters Row */}
+          <div className="flex gap-4 items-center flex-wrap">
+            {/* Country Filter */}
+            <div className="flex-shrink-0 w-40">
+              <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-countries">All Countries</SelectItem>
+                  {countries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Intake Filter */}
+            <div className="flex-shrink-0 w-40">
+              <Select value={intakeFilter} onValueChange={setIntakeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Intakes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-intakes">All Intakes</SelectItem>
+                  {intakes.map((intake) => (
+                    <SelectItem key={intake} value={intake}>
+                      {intake}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Source Filter */}
+            <div className="flex-shrink-0 w-40">
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Sources" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-sources">All Sources</SelectItem>
+                  {sources.map((source) => (
+                    <SelectItem key={source} value={source}>
+                      {source}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Counselor Filter */}
+            <div className="flex-shrink-0 w-40">
+              <Select value={counselorFilter} onValueChange={setCounselorFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Counselors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-counselors">All Counselors</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {counselors.map((counselor: any) => (
+                    <SelectItem key={counselor.id} value={counselor.id.toString()}>
+                      {counselor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters */}
+            {(countryFilter || intakeFilter || sourceFilter || counselorFilter) && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setCountryFilter("");
+                  setIntakeFilter("");
+                  setSourceFilter("");
+                  setCounselorFilter("");
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Summary */}
+        <div className="text-sm text-muted-foreground">
+          Showing {filteredLeads.length} of {leads.length} leads
+          {selectedStages.length > 0 && ` in ${selectedStages.length} stage${selectedStages.length > 1 ? 's' : ''}`}
+        </div>
+
+        {/* Bulk Assignment Card */}
+        {showBulkAssign && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg">Bulk Assignment</CardTitle>
+              <CardDescription>
+                Assign {selectedLeads.length} selected leads to a counselor
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Select value={selectedCounselor} onValueChange={setSelectedCounselor}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select counselor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {counselors.map((counselor: any) => (
+                        <SelectItem key={counselor.id} value={counselor.id.toString()}>
+                          {counselor.name} - {counselor.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={handleBulkAssign} 
+                  disabled={!selectedCounselor || bulkAssignMutation.isPending}
+                >
+                  {bulkAssignMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Assign Leads
+                </Button>
+                <Button variant="outline" onClick={() => setShowBulkAssign(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Leads Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>
-              {leads?.length || 0} Lead{leads?.length !== 1 ? "s" : ""}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : (
-              <Table>
-                <TableHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Country</TableHead>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Counselor</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leadsLoading ? (
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Country/Course</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>Counselor</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableCell colSpan={10} className="text-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      <div>Loading leads...</div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leads?.map((lead) => (
+                ) : filteredLeads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8">
+                      <div className="text-muted-foreground">
+                        No leads found matching your filters
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredLeads.map((lead: any) => (
                     <TableRow key={lead.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedLeads.includes(lead.id)}
+                          onCheckedChange={() => handleSelectLead(lead.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{lead.name}</TableCell>
+                      <TableCell>{lead.email || "-"}</TableCell>
+                      <TableCell>{lead.phone}</TableCell>
+                      <TableCell>{lead.country || "-"}</TableCell>
+                      <TableCell>{lead.course || "-"}</TableCell>
                       <TableCell>
-                        <div className="text-sm">
-                          <div>{lead.email || "-"}</div>
-                          <div className="text-muted-foreground">{lead.phone}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{lead.country || "-"}</div>
-                          <div className="text-muted-foreground">{lead.course || "-"}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStageColor(lead.current_stage)}>
+                        <Badge variant="outline" className={getStageColor(lead.current_stage)}>
                           {lead.current_stage}
                         </Badge>
                       </TableCell>
-                      <TableCell>{lead.users?.name || "Unassigned"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(lead.updated_at).toLocaleDateString()}
-                      </TableCell>
+                      <TableCell>{lead.counselorName || "Unassigned"}</TableCell>
+                      <TableCell>{new Date(lead.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Link to={`/lead/${lead.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewLead(lead.id)}
+                        >
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
