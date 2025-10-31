@@ -3,7 +3,18 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
+import AdminDashboard from "./pages/AdminDashboard";
+import CounselorDashboard from "./pages/CounselorDashboard";
+import AdminLeads from "./pages/AdminLeads";
+import CounselorLeads from "./pages/CounselorLeads";
+import AdminUsers from "./pages/AdminUsers";
+import AdminReports from "./pages/AdminReports";
+import AdminImport from "./pages/AdminImport";
+import LeadWorkspace from "./pages/LeadWorkspace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +25,22 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/leads" element={<ProtectedRoute requiredRole="admin"><AdminLeads /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute requiredRole="admin"><AdminReports /></ProtectedRoute>} />
+            <Route path="/admin/import" element={<ProtectedRoute requiredRole="admin"><AdminImport /></ProtectedRoute>} />
+            <Route path="/counselor" element={<ProtectedRoute requiredRole="counselor"><CounselorDashboard /></ProtectedRoute>} />
+            <Route path="/counselor/leads" element={<ProtectedRoute requiredRole="counselor"><CounselorLeads /></ProtectedRoute>} />
+            <Route path="/lead/:id" element={<ProtectedRoute><LeadWorkspace /></ProtectedRoute>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
