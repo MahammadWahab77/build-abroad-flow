@@ -42,8 +42,7 @@ export async function apiRequest<T = unknown>(path: string, options: ApiRequestO
   if (contentType.includes('application/json')) {
     return (await response.json()) as T;
   }
-  // @ts-expect-error allow text return when not json
-  return (await response.text()) as T;
+  return (await response.text()) as unknown as T;
 }
 
 
