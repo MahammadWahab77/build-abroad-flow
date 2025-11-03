@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '../lib/queryClient';
+import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -1247,14 +1247,25 @@ const EditLeadModal = ({ lead, onSuccess }: { lead: any; onSuccess: () => void }
 
   const editLeadMutation = useMutation({
     mutationFn: async (data: EditLeadFormData) => {
-      return await apiRequest(`/api/leads/${lead.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          country: data.country || null,
+          course: data.course || null,
+          intake: data.intake || null,
+          source: data.source || null,
+          passport_status: data.passportStatus || null,
+        })
+        .eq('id', lead.id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Lead updated successfully" });
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['leads', lead.id.toString()] });
       setIsOpen(false);
       onSuccess();
     },
@@ -1475,21 +1486,44 @@ const DocumentsList = ({ leadId }: { leadId: string }) => {
 
   // Fetch documents for this lead
   const { data: documents = [], isLoading } = useQuery<DocumentData[]>({
-    queryKey: ['/api/documents', leadId],
-    queryFn: () => apiRequest<DocumentData[]>(`/api/documents/${leadId}`),
+    queryKey: ['documents', leadId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('lead_id', parseInt(leadId))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(doc => ({
+        id: doc.id,
+        leadId: doc.lead_id,
+        documentType: doc.document_type,
+        documentUrl: doc.document_url || '',
+        remarks: doc.remarks || null,
+        createdAt: doc.created_at || undefined,
+        updatedAt: doc.updated_at || undefined,
+      }));
+    },
   });
 
   // Add document mutation
   const addDocumentMutation = useMutation({
     mutationFn: async (documentData: any) => {
-      return apiRequest(`/api/documents`, {
-        method: 'POST',
-        body: JSON.stringify(documentData),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const { error } = await supabase
+        .from('documents')
+        .insert({
+          lead_id: parseInt(leadId),
+          document_type: documentData.documentType,
+          document_url: documentData.documentUrl,
+          remarks: documentData.remarks || null,
+        });
+
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/documents', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['documents', leadId] });
       setNewDocumentUrl('');
       setSelectedDocumentType('');
       setDocumentRemarks('');
@@ -1510,14 +1544,18 @@ const DocumentsList = ({ leadId }: { leadId: string }) => {
   // Update document mutation
   const updateDocumentMutation = useMutation({
     mutationFn: async ({ id, documentUrl, remarks }: { id: number; documentUrl: string; remarks?: string }) => {
-      return apiRequest(`/api/documents/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ documentUrl, remarks }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          document_url: documentUrl,
+          remarks: remarks || null,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/documents', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['documents', leadId] });
       toast({
         title: "Success",
         description: "Document updated successfully",
@@ -1829,67 +1867,246 @@ const LeadWorkspace = () => {
   }, []);
   const isCurrentUserAdmin = currentUser.role === 'admin';
   const currentUserName = currentUser.name || 'Unknown User';
-  const currentUserId = currentUser.id ?? (import.meta.env.DEV ? DEFAULT_DEV_USER.id : undefined);
+  const currentUserId = currentUser.id ?? (import.meta.env.DEV ? DEFAULT_DEV_USER.id : 1);
 
   // Fetch lead data
   const { data: lead, isLoading: leadLoading } = useQuery<LeadData>({
-    queryKey: [`/api/leads/${leadId}`],
-    queryFn: () => apiRequest<LeadData>(`/api/leads/${leadId}`),
+    queryKey: ['leads', leadId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          counselor:users!counselor_id(name)
+        `)
+        .eq('id', parseInt(leadId))
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Lead not found');
+
+      // Map snake_case to camelCase
+      return {
+        id: data.id,
+        uid: data.uid || undefined,
+        name: data.name,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        country: data.country || undefined,
+        course: data.course || undefined,
+        intake: data.intake || undefined,
+        source: data.source || undefined,
+        passportStatus: data.passport_status || undefined,
+        currentStage: data.current_stage,
+        counselorName: data.counselor?.name || undefined,
+        createdAt: data.created_at,
+      } as LeadData;
+    },
     enabled: !!leadId
   });
 
   // Fetch tasks
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<TaskData[]>({
-    queryKey: [`/api/leads/${leadId}/tasks`],
-    queryFn: () => apiRequest<TaskData[]>(`/api/leads/${leadId}/tasks`),
+    queryKey: ['leads', leadId, 'tasks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          user:users!user_id(name)
+        `)
+        .eq('lead_id', parseInt(leadId))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Map snake_case to camelCase
+      return (data || []).map(task => ({
+        id: task.id,
+        taskType: task.task_type,
+        callType: task.call_type || undefined,
+        connectStatus: task.connect_status || undefined,
+        country: undefined,
+        intake: undefined,
+        prevConsultancy: undefined,
+        sessionStatus: task.session_status || undefined,
+        sessionDate: task.session_date || undefined,
+        isRescheduled: task.is_rescheduled ? 'Yes' : 'No',
+        shortlistingInitiated: task.shortlisting_initiated || undefined,
+        shortlistingStatus: task.shortlisting_status || undefined,
+        shortlistingFinalStatus: undefined,
+        applicationProcess: task.application_process || undefined,
+        applicationCount: task.application_count?.toString() || undefined,
+        trackingStatus: task.tracking_status || undefined,
+        applicationStatus: task.application_status || undefined,
+        offerLetterStatus: task.offer_letter_status || undefined,
+        visaStatus: task.visa_status || undefined,
+        depositStatus: task.deposit_status || undefined,
+        tuitionStatus: task.tuition_status || undefined,
+        commissionStatus: task.commission_status || undefined,
+        remarks: task.remarks || undefined,
+        universityName: undefined,
+        universityUrl: undefined,
+        username: undefined,
+        password: undefined,
+        reasonNotInterested: task.reason_not_interested || undefined,
+        preferredLanguage: task.preferred_language || undefined,
+        userId: task.user_id,
+        userName: task.user?.name || undefined,
+        createdAt: task.created_at,
+      }));
+    },
     enabled: !!leadId
   });
 
   // Fetch stage history
   const { data: history = [], isLoading: historyLoading } = useQuery<StageHistoryData[]>({
-    queryKey: [`/api/leads/${leadId}/history`],
-    queryFn: () => apiRequest<StageHistoryData[]>(`/api/leads/${leadId}/history`),
+    queryKey: ['leads', leadId, 'history'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stage_history')
+        .select(`
+          *,
+          user:users!user_id(name)
+        `)
+        .eq('lead_id', parseInt(leadId))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(item => ({
+        id: item.id,
+        fromStage: item.from_stage || undefined,
+        toStage: item.to_stage,
+        userId: item.user_id,
+        userName: item.user?.name || undefined,
+        reason: item.reason || undefined,
+        createdAt: item.created_at,
+      }));
+    },
     enabled: !!leadId
   });
 
   // Fetch remarks
   const { data: remarks = [], isLoading: remarksLoading } = useQuery<RemarkData[]>({
-    queryKey: [`/api/leads/${leadId}/remarks`],
-    queryFn: () => apiRequest<RemarkData[]>(`/api/leads/${leadId}/remarks`),
+    queryKey: ['leads', leadId, 'remarks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('remarks')
+        .select(`
+          *,
+          user:users!user_id(name)
+        `)
+        .eq('lead_id', parseInt(leadId))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(item => ({
+        id: item.id,
+        content: item.content,
+        userId: item.user_id,
+        userName: item.user?.name || undefined,
+        createdAt: item.created_at,
+      }));
+    },
     enabled: !!leadId
   });
 
   // Fetch university applications
   const { data: universityApps = [], isLoading: appsLoading } = useQuery<UniversityAppData[]>({
-    queryKey: [`/api/leads/${leadId}/universities`],
-    queryFn: () => apiRequest<UniversityAppData[]>(`/api/leads/${leadId}/universities`),
+    queryKey: ['leads', leadId, 'universities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('university_applications')
+        .select('*')
+        .eq('lead_id', parseInt(leadId))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(item => ({
+        id: item.id,
+        universityName: item.university_name,
+        universityUrl: item.university_url || undefined,
+        username: item.username || undefined,
+        password: item.password || undefined,
+        status: item.status || undefined,
+        createdAt: item.created_at || undefined,
+      }));
+    },
     enabled: !!leadId
   });
 
   // Mutations
   const createTaskMutation = useMutation({
-    mutationFn: (taskData: TaskData) =>
-      apiRequest(`/api/leads/${leadId}/tasks`, {
-        method: 'POST',
-        body: JSON.stringify({ ...taskData, userId: currentUserId })
-      }),
+    mutationFn: async (taskData: TaskData) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          lead_id: parseInt(leadId!),
+          user_id: currentUserId,
+          task_type: taskData.taskType,
+          call_type: taskData.callType || null,
+          connect_status: taskData.connectStatus || null,
+          session_status: taskData.sessionStatus || null,
+          session_date: taskData.sessionDate || null,
+          is_rescheduled: taskData.isRescheduled === 'Yes',
+          shortlisting_initiated: taskData.shortlistingInitiated || null,
+          shortlisting_status: taskData.shortlistingStatus || null,
+          application_process: taskData.applicationProcess || null,
+          application_count: taskData.applicationCount ? parseInt(taskData.applicationCount) : null,
+          tracking_status: taskData.trackingStatus || null,
+          application_status: taskData.applicationStatus || null,
+          offer_letter_status: taskData.offerLetterStatus || null,
+          visa_status: taskData.visaStatus || null,
+          deposit_status: taskData.depositStatus || null,
+          tuition_status: taskData.tuitionStatus || null,
+          commission_status: taskData.commissionStatus || null,
+          remarks: taskData.remarks || null,
+          reason_not_interested: taskData.reasonNotInterested || null,
+          preferred_language: taskData.preferredLanguage || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}/tasks`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}`] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadId] });
       toast({ title: 'Success', description: 'Task created successfully' });
     }
   });
 
   const updateStageMutation = useMutation({
-    mutationFn: ({ stage, reason }: { stage: string; reason?: string }) =>
-      apiRequest(`/api/leads/${leadId}/stage`, {
-        method: 'PUT',
-        body: JSON.stringify({ stage, userId: currentUserId, reason })
-      }),
+    mutationFn: async ({ stage, reason }: { stage: string; reason?: string }) => {
+      // Update lead stage
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ current_stage: stage })
+        .eq('id', parseInt(leadId));
+
+      if (leadError) throw leadError;
+
+      // Add stage history
+      const { error: historyError } = await supabase
+        .from('stage_history')
+        .insert({
+          lead_id: parseInt(leadId!),
+          user_id: currentUserId,
+          from_stage: lead?.currentStage || null,
+          to_stage: stage,
+          reason: reason || null,
+        });
+
+      if (historyError) throw historyError;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}/history`] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'history'] });
       toast({ title: 'Success', description: 'Stage updated successfully' });
       setIsStageModalOpen(false);
       setIsAdminStageModalOpen(false);
@@ -1897,25 +2114,46 @@ const LeadWorkspace = () => {
   });
 
   const createRemarkMutation = useMutation({
-    mutationFn: (content: string) =>
-      apiRequest(`/api/leads/${leadId}/remarks`, {
-        method: 'POST',
-        body: JSON.stringify({ content, userId: currentUserId })
-      }),
+    mutationFn: async (content: string) => {
+      const { data, error } = await supabase
+        .from('remarks')
+        .insert({
+          lead_id: parseInt(leadId!),
+          user_id: currentUserId,
+          content,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}/remarks`] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'remarks'] });
       toast({ title: 'Success', description: 'Remark added successfully' });
     }
   });
 
   const createUniversityAppMutation = useMutation({
-    mutationFn: (appData: UniversityAppData) =>
-      apiRequest(`/api/leads/${leadId}/universities`, {
-        method: 'POST',
-        body: JSON.stringify(appData)
-      }),
+    mutationFn: async (appData: UniversityAppData) => {
+      const { data, error } = await supabase
+        .from('university_applications')
+        .insert({
+          lead_id: parseInt(leadId!),
+          university_name: appData.universityName,
+          university_url: appData.universityUrl || null,
+          username: appData.username || null,
+          password: appData.password || null,
+          status: appData.status || 'In Progress',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}/universities`] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'universities'] });
       toast({ title: 'Success', description: 'University application added successfully' });
     }
   });
