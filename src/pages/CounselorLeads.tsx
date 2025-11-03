@@ -29,7 +29,7 @@ export default function CounselorLeads() {
       let query = supabase
         .from("leads")
         .select("*")
-        .eq("counselor_id", profile?.id)
+        .eq("counselor_uuid", profile?.id)
         .order("updated_at", { ascending: false });
 
       if (selectedStage) {

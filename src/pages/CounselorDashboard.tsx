@@ -14,7 +14,7 @@ export default function CounselorDashboard() {
       const { data: leads } = await supabase
         .from("leads")
         .select("*")
-        .eq("counselor_id", profile?.id);
+        .eq("counselor_uuid", profile?.id);
 
       const totalLeads = leads?.length || 0;
       const activeLeads = leads?.filter(
@@ -37,7 +37,7 @@ export default function CounselorDashboard() {
       const { data } = await supabase
         .from("leads")
         .select("*")
-        .eq("counselor_id", profile?.id)
+        .eq("counselor_uuid", profile?.id)
         .order("updated_at", { ascending: false })
         .limit(5);
       return data || [];

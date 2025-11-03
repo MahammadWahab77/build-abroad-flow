@@ -24,6 +24,7 @@ export type Database = {
           remarks: string | null
           updated_at: string
           uploaded_by: number | null
+          uploaded_by_uuid: string | null
         }
         Insert: {
           created_at?: string
@@ -34,6 +35,7 @@ export type Database = {
           remarks?: string | null
           updated_at?: string
           uploaded_by?: number | null
+          uploaded_by_uuid?: string | null
         }
         Update: {
           created_at?: string
@@ -44,6 +46,7 @@ export type Database = {
           remarks?: string | null
           updated_at?: string
           uploaded_by?: number | null
+          uploaded_by_uuid?: string | null
         }
         Relationships: [
           {
@@ -60,12 +63,20 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "documents_uploaded_by_uuid_fkey"
+            columns: ["uploaded_by_uuid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       leads: {
         Row: {
           counsellors: string | null
           counselor_id: number | null
+          counselor_uuid: string | null
           country: string | null
           course: string | null
           created_at: string
@@ -74,6 +85,7 @@ export type Database = {
           id: number
           intake: string | null
           manager_id: number | null
+          manager_uuid: string | null
           name: string
           passport_status: string | null
           phone: string
@@ -86,6 +98,7 @@ export type Database = {
         Insert: {
           counsellors?: string | null
           counselor_id?: number | null
+          counselor_uuid?: string | null
           country?: string | null
           course?: string | null
           created_at?: string
@@ -94,6 +107,7 @@ export type Database = {
           id?: number
           intake?: string | null
           manager_id?: number | null
+          manager_uuid?: string | null
           name: string
           passport_status?: string | null
           phone: string
@@ -106,6 +120,7 @@ export type Database = {
         Update: {
           counsellors?: string | null
           counselor_id?: number | null
+          counselor_uuid?: string | null
           country?: string | null
           course?: string | null
           created_at?: string
@@ -114,6 +129,7 @@ export type Database = {
           id?: number
           intake?: string | null
           manager_id?: number | null
+          manager_uuid?: string | null
           name?: string
           passport_status?: string | null
           phone?: string
@@ -132,10 +148,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_counselor_uuid_fkey"
+            columns: ["counselor_uuid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_manager_id_users_id_fk"
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_manager_uuid_fkey"
+            columns: ["manager_uuid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -175,6 +205,7 @@ export type Database = {
           is_visible: boolean
           lead_id: number
           user_id: number
+          user_uuid: string | null
         }
         Insert: {
           content: string
@@ -183,6 +214,7 @@ export type Database = {
           is_visible?: boolean
           lead_id: number
           user_id: number
+          user_uuid?: string | null
         }
         Update: {
           content?: string
@@ -191,6 +223,7 @@ export type Database = {
           is_visible?: boolean
           lead_id?: number
           user_id?: number
+          user_uuid?: string | null
         }
         Relationships: [
           {
@@ -207,6 +240,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "remarks_user_uuid_fkey"
+            columns: ["user_uuid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stage_history: {
@@ -218,6 +258,7 @@ export type Database = {
           reason: string | null
           to_stage: string
           user_id: number
+          user_uuid: string | null
         }
         Insert: {
           created_at?: string
@@ -227,6 +268,7 @@ export type Database = {
           reason?: string | null
           to_stage: string
           user_id: number
+          user_uuid?: string | null
         }
         Update: {
           created_at?: string
@@ -236,6 +278,7 @@ export type Database = {
           reason?: string | null
           to_stage?: string
           user_id?: number
+          user_uuid?: string | null
         }
         Relationships: [
           {
@@ -250,6 +293,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_history_user_uuid_fkey"
+            columns: ["user_uuid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -280,6 +330,7 @@ export type Database = {
           tracking_status: string | null
           tuition_status: string | null
           user_id: number
+          user_uuid: string | null
           visa_status: string | null
         }
         Insert: {
@@ -307,6 +358,7 @@ export type Database = {
           tracking_status?: string | null
           tuition_status?: string | null
           user_id: number
+          user_uuid?: string | null
           visa_status?: string | null
         }
         Update: {
@@ -334,6 +386,7 @@ export type Database = {
           tracking_status?: string | null
           tuition_status?: string | null
           user_id?: number
+          user_uuid?: string | null
           visa_status?: string | null
         }
         Relationships: [
@@ -349,6 +402,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_user_uuid_fkey"
+            columns: ["user_uuid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
