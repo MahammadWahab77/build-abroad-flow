@@ -2034,7 +2034,8 @@ const LeadWorkspace = () => {
   // Mutations
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: TaskData) => {
-      const { data, error } = await supabase
+      // First, insert the task
+      const { data: taskResult, error } = await supabase
         .from('tasks')
         .insert({
           lead_id: leadIdNum,
@@ -2064,11 +2065,90 @@ const LeadWorkspace = () => {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Determine if stage should be updated based on task data
+      let newStage: string | null = null;
+      let stageReason = '';
+
+      // Handle Call task stage changes
+      if (taskData.taskType === 'Call' && taskData.connectStatus) {
+        switch (taskData.connectStatus) {
+          case 'Interested':
+            newStage = 'Interested';
+            stageReason = 'Lead showed interest during call';
+            break;
+          case 'Not Interested':
+            newStage = 'Not Interested';
+            stageReason = 'Lead not interested';
+            break;
+          case 'Planning Later':
+            newStage = 'Planning Later';
+            stageReason = 'Lead planning for later intake';
+            break;
+          case 'Yet to Decide':
+            newStage = 'Yet to Decide';
+            stageReason = 'Lead needs more time to decide';
+            break;
+          case 'Casual Follow-up':
+            newStage = 'Casual Follow-up';
+            stageReason = 'Casual follow-up required';
+            break;
+        }
+      }
+
+      // Handle session completed stage change
+      if (taskData.taskType === 'Meet Done' && taskData.sessionStatus === 'Session Done') {
+        newStage = 'Session Completed';
+        stageReason = 'Counseling session completed';
+      }
+
+      // Handle shortlisting stage
+      if (taskData.shortlistingStatus === 'Completed') {
+        newStage = 'Shortlisted Univ.';
+        stageReason = 'University shortlisting completed';
+      }
+
+      // Handle application stages
+      if (taskData.applicationStatus === 'Submitted' || taskData.applicationStatus === 'In Progress') {
+        newStage = 'Application in Progress';
+        stageReason = 'Application process started';
+      }
+
+      if (taskData.offerLetterStatus) {
+        newStage = 'Offer Letter Received';
+        stageReason = 'Offer letter received from university';
+      }
+
+      // Update stage if needed
+      if (newStage && newStage !== lead?.currentStage) {
+        // Update lead stage
+        const { error: leadError } = await supabase
+          .from('leads')
+          .update({ current_stage: newStage })
+          .eq('id', leadIdNum);
+
+        if (leadError) throw leadError;
+
+        // Add stage history
+        const { error: historyError } = await supabase
+          .from('stage_history')
+          .insert({
+            lead_id: leadIdNum,
+            user_id: currentUserId,
+            from_stage: lead?.currentStage || null,
+            to_stage: newStage,
+            reason: stageReason,
+          });
+
+        if (historyError) throw historyError;
+      }
+
+      return taskResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum, 'tasks'] });
       queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum, 'history'] });
       toast({ title: 'Success', description: 'Task created successfully' });
     }
   });
