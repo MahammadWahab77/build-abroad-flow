@@ -67,14 +67,14 @@ export default function AdminLeads() {
         .from("leads")
         .select(`
           *,
-          users!leads_counselor_id_users_id_fk(name)
+          profiles:counselor_uuid(name)
         `)
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
       return data.map((lead: any) => ({
         ...lead,
-        counselorName: lead.users?.name || null
+        counselorName: lead.profiles?.name || null
       })) || [];
     },
   });
@@ -84,10 +84,13 @@ export default function AdminLeads() {
     queryKey: ["counselors"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("role", "counselor")
-        .eq("is_active", true);
+        .from("profiles")
+        .select(`
+          *,
+          user_roles!inner(role)
+        `)
+        .eq('user_roles.role', 'counselor')
+        .eq('is_active', true);
 
       if (error) throw error;
       return data || [];
@@ -109,17 +112,17 @@ export default function AdminLeads() {
     const matchesIntake = !intakeFilter || intakeFilter === "all-intakes" || lead.intake === intakeFilter;
     const matchesSource = !sourceFilter || sourceFilter === "all-sources" || lead.source === sourceFilter;
     const matchesCounselor = !counselorFilter || counselorFilter === "all-counselors" || 
-      (lead.counselor_id && lead.counselor_id.toString() === counselorFilter) ||
-      (counselorFilter === "unassigned" && !lead.counselor_id);
+      (lead.counselor_uuid && lead.counselor_uuid === counselorFilter) ||
+      (counselorFilter === "unassigned" && !lead.counselor_uuid);
     
     return matchesStage && matchesSearch && matchesCountry && matchesIntake && matchesSource && matchesCounselor;
   });
 
   const bulkAssignMutation = useMutation({
-    mutationFn: async ({ leadIds, counselorId }: { leadIds: number[], counselorId: number }) => {
+    mutationFn: async ({ leadIds, counselorId }: { leadIds: number[], counselorId: string }) => {
       const { error } = await supabase
         .from("leads")
-        .update({ counselor_id: counselorId })
+        .update({ counselor_uuid: counselorId })
         .in("id", leadIds);
 
       if (error) throw error;
@@ -154,7 +157,7 @@ export default function AdminLeads() {
 
   const handleBulkAssign = () => {
     if (selectedLeads.length > 0 && selectedCounselor) {
-      bulkAssignMutation.mutate({ leadIds: selectedLeads, counselorId: parseInt(selectedCounselor) });
+      bulkAssignMutation.mutate({ leadIds: selectedLeads, counselorId: selectedCounselor });
     }
   };
 
@@ -329,15 +332,15 @@ export default function AdminLeads() {
                 <SelectTrigger>
                   <SelectValue placeholder="All Counselors" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all-counselors">All Counselors</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {counselors.map((counselor: any) => (
-                    <SelectItem key={counselor.id} value={counselor.id.toString()}>
-                      {counselor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="all-counselors">All Counselors</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {counselors.map((counselor: any) => (
+                      <SelectItem key={counselor.id} value={counselor.id}>
+                        {counselor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
               </Select>
             </div>
 
@@ -381,13 +384,13 @@ export default function AdminLeads() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select counselor..." />
                     </SelectTrigger>
-                    <SelectContent>
+                  <SelectContent>
                       {counselors.map((counselor: any) => (
-                        <SelectItem key={counselor.id} value={counselor.id.toString()}>
-                          {counselor.name} - {counselor.email}
+                        <SelectItem key={counselor.id} value={counselor.id}>
+                          {counselor.name}
                         </SelectItem>
                       ))}
-                    </SelectContent>
+                  </SelectContent>
                   </Select>
                 </div>
                 <Button 
