@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { 
   ArrowLeft, 
   MoreVertical, 
+  ChevronLeft,
   ChevronRight, 
   CheckCircle, 
   X, 
@@ -2317,38 +2318,68 @@ const LeadWorkspace = () => {
                 </div>
                 <Progress value={progressPercentage} className="w-full" />
                 
-                {/* All Pipeline Stages */}
+                {/* Horizontal Scrollable Stage Navigator */}
                 <div className="mt-4 pt-4 border-t">
                   <h4 className="text-sm font-semibold mb-3">Pipeline Stages</h4>
-                  <div className="grid grid-cols-1 gap-1.5 max-h-[400px] overflow-y-auto pr-2">
-                    {PIPELINE_STAGES.map((stage, index) => {
-                      const isCurrentStage = index === currentStageIndex;
-                      const isPastStage = index < currentStageIndex;
-                      
-                      return (
-                        <div
-                          key={stage}
-                          className={`flex items-center gap-2 p-2 rounded-md text-sm transition-colors ${
-                            isCurrentStage
-                              ? 'bg-primary text-primary-foreground font-semibold'
-                              : isPastStage
-                              ? 'bg-muted text-muted-foreground'
-                              : 'text-foreground'
-                          }`}
-                        >
-                          <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                            isCurrentStage
-                              ? 'bg-primary-foreground text-primary'
-                              : isPastStage
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {isPastStage ? <CheckCircle className="w-4 h-4" /> : index + 1}
-                          </div>
-                          <span className="flex-1">{stage}</span>
-                        </div>
-                      );
-                    })}
+                  <div className="flex items-center space-x-2">
+                    {/* Left Scroll Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const container = document.getElementById('stage-scroll-container');
+                        if (container) {
+                          container.scrollBy({ left: -200, behavior: 'smooth' });
+                        }
+                      }}
+                      className="shrink-0"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+
+                    {/* Scrollable Stage Container */}
+                    <div 
+                      id="stage-scroll-container"
+                      className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      <div className="flex space-x-2 py-2">
+                        {PIPELINE_STAGES.map((stage, index) => {
+                          const isCurrentStage = index === currentStageIndex;
+                          const isPastStage = index < currentStageIndex;
+                          
+                          return (
+                            <Badge
+                              key={stage}
+                              className={`whitespace-nowrap shrink-0 px-3 py-2 text-xs font-medium transition-all ${
+                                isCurrentStage
+                                  ? 'bg-blue-600 text-white shadow-md'
+                                  : isPastStage
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-gray-300 text-gray-600'
+                              }`}
+                            >
+                              {stage}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Right Scroll Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const container = document.getElementById('stage-scroll-container');
+                        if (container) {
+                          container.scrollBy({ left: 200, behavior: 'smooth' });
+                        }
+                      }}
+                      className="shrink-0"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
