@@ -40,16 +40,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      // For demo purposes, we'll fetch the user by email
-      // In production, you'd validate the password against bcrypt hash
+      // Fetch the user by email
       const { data: user, error } = await supabase
         .from("users")
         .select("*")
         .eq("email", email)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
-      if (error || !user) {
+      if (error) {
+        console.error("Login error:", error);
+        return { error: { message: "An error occurred during login" } };
+      }
+
+      if (!user) {
+        return { error: { message: "Invalid email or password" } };
+      }
+
+      // Validate password (plain text comparison - in production use bcrypt)
+      if (user.password !== password) {
         return { error: { message: "Invalid email or password" } };
       }
 
