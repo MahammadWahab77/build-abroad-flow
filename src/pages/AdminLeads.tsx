@@ -83,17 +83,25 @@ export default function AdminLeads() {
   const { data: counselors = [] } = useQuery({
     queryKey: ["counselors"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          *,
-          user_roles!inner(role)
-        `)
-        .eq('user_roles.role', 'counselor')
+      // Step 1: get counselor user IDs from user_roles (no FK join available)
+      const { data: roleRows, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'counselor');
+      if (rolesError) throw rolesError;
+
+      const ids = (roleRows || []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [] as any[];
+
+      // Step 2: fetch active profiles for those IDs
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', ids)
         .eq('is_active', true);
 
-      if (error) throw error;
-      return data || [];
+      if (profilesError) throw profilesError;
+      return profiles || [];
     },
   });
 
