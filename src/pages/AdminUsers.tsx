@@ -89,7 +89,7 @@ export default function AdminUsers() {
         .from("users")
         .select("id")
         .eq("email", userData.email)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         throw new Error("A user with this email already exists");
