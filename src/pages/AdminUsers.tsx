@@ -72,13 +72,22 @@ export default function AdminUsers() {
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Use edge function to get users list with service role
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.functions.invoke('list-users', {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+      });
 
       if (error) throw error;
-      return data || [];
+      if (data.error) throw new Error(data.error);
+      
+      return data.data || [];
     },
   });
 

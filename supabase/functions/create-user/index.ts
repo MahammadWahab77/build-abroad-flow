@@ -45,47 +45,92 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', userData.email)
-      .maybeSingle()
+    // Check if user already exists in Auth
+    const { data: existingAuthUser } = await supabaseAdmin.auth.admin.listUsers()
+    const userExists = existingAuthUser?.users.some(u => u.email === userData.email)
 
-    if (existingUser) {
-      console.log('User already exists with email:', userData.email)
+    if (userExists) {
+      console.log('User already exists in Auth with email:', userData.email)
       return new Response(
         JSON.stringify({ error: 'A user with this email already exists' }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create the user with service role privileges
-    const { data: newUser, error } = await supabaseAdmin
-      .from('users')
+    // Create user in Supabase Auth
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: userData.email,
+      password: userData.password,
+      email_confirm: true, // Auto-confirm for testing
+      app_metadata: {
+        provider: 'email',
+      }
+    })
+
+    if (authError || !authUser.user) {
+      console.error('Error creating Auth user:', authError)
+      return new Response(
+        JSON.stringify({ error: authError?.message || 'Failed to create Auth user' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Auth user created:', authUser.user.id)
+
+    // Create profile in profiles table
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
       .insert({
+        id: authUser.user.id,
         name: userData.name,
-        email: userData.email,
         phone: userData.phone || null,
-        role: userData.role,
-        password: userData.password, // In production, this should be hashed!
         is_active: true,
       })
       .select()
       .single()
 
-    if (error) {
-      console.error('Error creating user:', error)
+    if (profileError) {
+      console.error('Error creating profile:', profileError)
+      // Rollback: delete the auth user
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: 'Failed to create user profile' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('User created successfully:', newUser.id)
+    // Create role in user_roles table
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: authUser.user.id,
+        role: userData.role,
+      })
+
+    if (roleError) {
+      console.error('Error creating role:', roleError)
+      // Rollback: delete profile and auth user
+      await supabaseAdmin.from('profiles').delete().eq('id', authUser.user.id)
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+      return new Response(
+        JSON.stringify({ error: 'Failed to assign user role' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('User created successfully:', authUser.user.id)
 
     return new Response(
-      JSON.stringify({ data: newUser }),
+      JSON.stringify({ 
+        data: {
+          id: authUser.user.id,
+          email: authUser.user.email,
+          name: profile.name,
+          role: userData.role,
+          is_active: profile.is_active,
+          created_at: profile.created_at
+        }
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

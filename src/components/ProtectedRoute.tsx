@@ -10,7 +10,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requiredRole 
 }) => {
-  const { profile, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -23,7 +23,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!profile) {
+  if (!session || !profile) {
     return <Navigate to="/auth" replace />;
   }
 
