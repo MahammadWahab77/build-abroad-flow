@@ -2310,12 +2310,47 @@ const LeadWorkspace = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-gray-600">
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Stage {currentStageIndex + 1} of {PIPELINE_STAGES.length}</span>
                   <span>{Math.round(progressPercentage)}% Complete</span>
                 </div>
                 <Progress value={progressPercentage} className="w-full" />
+                
+                {/* All Pipeline Stages */}
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="text-sm font-semibold mb-3">Pipeline Stages</h4>
+                  <div className="grid grid-cols-1 gap-1.5 max-h-[400px] overflow-y-auto pr-2">
+                    {PIPELINE_STAGES.map((stage, index) => {
+                      const isCurrentStage = index === currentStageIndex;
+                      const isPastStage = index < currentStageIndex;
+                      
+                      return (
+                        <div
+                          key={stage}
+                          className={`flex items-center gap-2 p-2 rounded-md text-sm transition-colors ${
+                            isCurrentStage
+                              ? 'bg-primary text-primary-foreground font-semibold'
+                              : isPastStage
+                              ? 'bg-muted text-muted-foreground'
+                              : 'text-foreground'
+                          }`}
+                        >
+                          <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                            isCurrentStage
+                              ? 'bg-primary-foreground text-primary'
+                              : isPastStage
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {isPastStage ? <CheckCircle className="w-4 h-4" /> : index + 1}
+                          </div>
+                          <span className="flex-1">{stage}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
