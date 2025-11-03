@@ -1488,10 +1488,11 @@ const DocumentsList = ({ leadId }: { leadId: string }) => {
   const { data: documents = [], isLoading } = useQuery<DocumentData[]>({
     queryKey: ['documents', leadId],
     queryFn: async () => {
+      const leadIdNum = Number(leadId);
       const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('lead_id', parseInt(leadId))
+        .eq('lead_id', leadIdNum)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -1511,10 +1512,11 @@ const DocumentsList = ({ leadId }: { leadId: string }) => {
   // Add document mutation
   const addDocumentMutation = useMutation({
     mutationFn: async (documentData: any) => {
+      const leadIdNum = Number(leadId);
       const { error } = await supabase
         .from('documents')
         .insert({
-          lead_id: parseInt(leadId),
+          lead_id: leadIdNum,
           document_type: documentData.documentType,
           document_url: documentData.documentUrl,
           remarks: documentData.remarks || null,
@@ -1581,7 +1583,6 @@ const DocumentsList = ({ leadId }: { leadId: string }) => {
     }
 
     addDocumentMutation.mutate({
-      leadId: parseInt(leadId),
       documentType: selectedDocumentType,
       documentUrl: newDocumentUrl.trim(),
       remarks: documentRemarks.trim() || null,
@@ -1834,10 +1835,13 @@ const DocumentTypeCard = ({
 };
 
 const LeadWorkspace = () => {
-  const { leadId } = useParams<{ leadId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const leadId = id ?? '';
+  const leadIdNum = Number(leadId);
 
   // State
   const [isStageModalOpen, setIsStageModalOpen] = useState(false);
@@ -1871,16 +1875,13 @@ const LeadWorkspace = () => {
 
   // Fetch lead data
   const { data: lead, isLoading: leadLoading } = useQuery<LeadData>({
-    queryKey: ['leads', leadId],
+    queryKey: ['leads', leadIdNum],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select(`
-          *,
-          counselor:users!counselor_id(name)
-        `)
-        .eq('id', parseInt(leadId))
-        .single();
+        .select('*')
+        .eq('id', leadIdNum)
+        .maybeSingle();
 
       if (error) throw error;
       if (!data) throw new Error('Lead not found');
@@ -1898,24 +1899,21 @@ const LeadWorkspace = () => {
         source: data.source || undefined,
         passportStatus: data.passport_status || undefined,
         currentStage: data.current_stage,
-        counselorName: data.counselor?.name || undefined,
+        counselorName: data.counsellors || undefined,
         createdAt: data.created_at,
       } as LeadData;
     },
-    enabled: !!leadId
+    enabled: Number.isFinite(leadIdNum)
   });
 
   // Fetch tasks
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<TaskData[]>({
-    queryKey: ['leads', leadId, 'tasks'],
+    queryKey: ['leads', leadIdNum, 'tasks'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select(`
-          *,
-          user:users!user_id(name)
-        `)
-        .eq('lead_id', parseInt(leadId))
+        .select('*')
+        .eq('lead_id', leadIdNum)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -1952,24 +1950,21 @@ const LeadWorkspace = () => {
         reasonNotInterested: task.reason_not_interested || undefined,
         preferredLanguage: task.preferred_language || undefined,
         userId: task.user_id,
-        userName: task.user?.name || undefined,
+        userName: undefined,
         createdAt: task.created_at,
       }));
     },
-    enabled: !!leadId
+    enabled: Number.isFinite(leadIdNum)
   });
 
   // Fetch stage history
   const { data: history = [], isLoading: historyLoading } = useQuery<StageHistoryData[]>({
-    queryKey: ['leads', leadId, 'history'],
+    queryKey: ['leads', leadIdNum, 'history'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stage_history')
-        .select(`
-          *,
-          user:users!user_id(name)
-        `)
-        .eq('lead_id', parseInt(leadId))
+        .select('*')
+        .eq('lead_id', leadIdNum)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -1979,25 +1974,22 @@ const LeadWorkspace = () => {
         fromStage: item.from_stage || undefined,
         toStage: item.to_stage,
         userId: item.user_id,
-        userName: item.user?.name || undefined,
+        userName: undefined,
         reason: item.reason || undefined,
         createdAt: item.created_at,
       }));
     },
-    enabled: !!leadId
+    enabled: Number.isFinite(leadIdNum)
   });
 
   // Fetch remarks
   const { data: remarks = [], isLoading: remarksLoading } = useQuery<RemarkData[]>({
-    queryKey: ['leads', leadId, 'remarks'],
+    queryKey: ['leads', leadIdNum, 'remarks'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('remarks')
-        .select(`
-          *,
-          user:users!user_id(name)
-        `)
-        .eq('lead_id', parseInt(leadId))
+        .select('*')
+        .eq('lead_id', leadIdNum)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -2006,21 +1998,21 @@ const LeadWorkspace = () => {
         id: item.id,
         content: item.content,
         userId: item.user_id,
-        userName: item.user?.name || undefined,
+        userName: undefined,
         createdAt: item.created_at,
       }));
     },
-    enabled: !!leadId
+    enabled: Number.isFinite(leadIdNum)
   });
 
   // Fetch university applications
   const { data: universityApps = [], isLoading: appsLoading } = useQuery<UniversityAppData[]>({
-    queryKey: ['leads', leadId, 'universities'],
+    queryKey: ['leads', leadIdNum, 'universities'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('university_applications')
         .select('*')
-        .eq('lead_id', parseInt(leadId))
+        .eq('lead_id', leadIdNum)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -2035,7 +2027,7 @@ const LeadWorkspace = () => {
         createdAt: item.created_at || undefined,
       }));
     },
-    enabled: !!leadId
+    enabled: Number.isFinite(leadIdNum)
   });
 
   // Mutations
@@ -2044,7 +2036,7 @@ const LeadWorkspace = () => {
       const { data, error } = await supabase
         .from('tasks')
         .insert({
-          lead_id: parseInt(leadId!),
+          lead_id: leadIdNum,
           user_id: currentUserId,
           task_type: taskData.taskType,
           call_type: taskData.callType || null,
@@ -2074,8 +2066,8 @@ const LeadWorkspace = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['leads', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum] });
       toast({ title: 'Success', description: 'Task created successfully' });
     }
   });
@@ -2086,7 +2078,7 @@ const LeadWorkspace = () => {
       const { error: leadError } = await supabase
         .from('leads')
         .update({ current_stage: stage })
-        .eq('id', parseInt(leadId));
+        .eq('id', leadIdNum);
 
       if (leadError) throw leadError;
 
@@ -2094,7 +2086,7 @@ const LeadWorkspace = () => {
       const { error: historyError } = await supabase
         .from('stage_history')
         .insert({
-          lead_id: parseInt(leadId!),
+          lead_id: leadIdNum,
           user_id: currentUserId,
           from_stage: lead?.currentStage || null,
           to_stage: stage,
@@ -2105,8 +2097,8 @@ const LeadWorkspace = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['leads', leadId] });
-      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum, 'history'] });
       toast({ title: 'Success', description: 'Stage updated successfully' });
       setIsStageModalOpen(false);
       setIsAdminStageModalOpen(false);
@@ -2118,7 +2110,7 @@ const LeadWorkspace = () => {
       const { data, error } = await supabase
         .from('remarks')
         .insert({
-          lead_id: parseInt(leadId!),
+          lead_id: leadIdNum,
           user_id: currentUserId,
           content,
         })
@@ -2129,7 +2121,7 @@ const LeadWorkspace = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'remarks'] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum, 'remarks'] });
       toast({ title: 'Success', description: 'Remark added successfully' });
     }
   });
@@ -2139,7 +2131,7 @@ const LeadWorkspace = () => {
       const { data, error } = await supabase
         .from('university_applications')
         .insert({
-          lead_id: parseInt(leadId!),
+          lead_id: leadIdNum,
           university_name: appData.universityName,
           university_url: appData.universityUrl || null,
           username: appData.username || null,
@@ -2153,7 +2145,7 @@ const LeadWorkspace = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'universities'] });
+      queryClient.invalidateQueries({ queryKey: ['leads', leadIdNum, 'universities'] });
       toast({ title: 'Success', description: 'University application added successfully' });
     }
   });
@@ -2192,6 +2184,21 @@ const LeadWorkspace = () => {
       }
     });
   };
+
+  if (!Number.isFinite(leadIdNum)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium text-gray-900 mb-2">Invalid lead ID</div>
+          <p className="text-gray-600 mb-4">The lead ID provided is not valid.</p>
+          <Button onClick={() => navigate('/admin/leads')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Leads
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (leadLoading) {
     return (
@@ -2575,7 +2582,7 @@ const LeadWorkspace = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <DocumentsList leadId={leadId || ''} />
+                    <DocumentsList leadId={String(leadIdNum)} />
                   </CardContent>
                 </Card>
               </TabsContent>
