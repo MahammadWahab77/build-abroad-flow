@@ -14,7 +14,7 @@ import CounselorLeads from "./pages/CounselorLeads";
 import AdminUsers from "./pages/AdminUsers";
 import AdminReports from "./pages/AdminReports";
 import AdminImport from "./pages/AdminImport";
-import LeadWorkspace from "./pages/LeadWorkspace";
+import LeadWorkspace from "./pages/LeadWorkspace_New";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

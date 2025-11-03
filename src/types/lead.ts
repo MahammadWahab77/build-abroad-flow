@@ -59,6 +59,31 @@ export interface UniversityAppData {
   password?: string;
   status?: string;
   createdAt?: string;
+  updatedAt?: string;
+  trackedCount?: number;
+  substatus?: string;
+  applicationReferenceId?: string;
+  submissionProof?: string;
+  submittedAt?: string;
+  portalUsername?: string;
+  portalPasswordEncrypted?: string;
+  offerType?: 'Conditional' | 'Unconditional';
+  offerLetterFile?: string;
+  offerReceivedAt?: string;
+  visaStatus?: string;
+  depositProof?: string;
+  depositDate?: string;
+  tuitionProof?: string;
+  tuitionDate?: string;
+  commissionProof?: string;
+  commissionDate?: string;
+  isActive?: boolean;
+  audit?: Array<{
+    timestamp: string;
+    userId: number;
+    userName: string;
+    changes: string[];
+  }>;
 }
 
 export interface LeadData {
