@@ -1875,12 +1875,9 @@ const LeadWorkspace = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select(`
-          *,
-          counselor:users!counselor_id(name)
-        `)
+        .select('*')
         .eq('id', parseInt(leadId))
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       if (!data) throw new Error('Lead not found');
@@ -1898,7 +1895,7 @@ const LeadWorkspace = () => {
         source: data.source || undefined,
         passportStatus: data.passport_status || undefined,
         currentStage: data.current_stage,
-        counselorName: data.counselor?.name || undefined,
+        counselorName: data.counsellors || undefined,
         createdAt: data.created_at,
       } as LeadData;
     },
@@ -1911,10 +1908,7 @@ const LeadWorkspace = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select(`
-          *,
-          user:users!user_id(name)
-        `)
+        .select('*')
         .eq('lead_id', parseInt(leadId))
         .order('created_at', { ascending: false });
 
@@ -1952,7 +1946,7 @@ const LeadWorkspace = () => {
         reasonNotInterested: task.reason_not_interested || undefined,
         preferredLanguage: task.preferred_language || undefined,
         userId: task.user_id,
-        userName: task.user?.name || undefined,
+        userName: undefined,
         createdAt: task.created_at,
       }));
     },
@@ -1965,10 +1959,7 @@ const LeadWorkspace = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stage_history')
-        .select(`
-          *,
-          user:users!user_id(name)
-        `)
+        .select('*')
         .eq('lead_id', parseInt(leadId))
         .order('created_at', { ascending: false });
 
@@ -1979,7 +1970,7 @@ const LeadWorkspace = () => {
         fromStage: item.from_stage || undefined,
         toStage: item.to_stage,
         userId: item.user_id,
-        userName: item.user?.name || undefined,
+        userName: undefined,
         reason: item.reason || undefined,
         createdAt: item.created_at,
       }));
@@ -1993,10 +1984,7 @@ const LeadWorkspace = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('remarks')
-        .select(`
-          *,
-          user:users!user_id(name)
-        `)
+        .select('*')
         .eq('lead_id', parseInt(leadId))
         .order('created_at', { ascending: false });
 
@@ -2006,7 +1994,7 @@ const LeadWorkspace = () => {
         id: item.id,
         content: item.content,
         userId: item.user_id,
-        userName: item.user?.name || undefined,
+        userName: undefined,
         createdAt: item.created_at,
       }));
     },
