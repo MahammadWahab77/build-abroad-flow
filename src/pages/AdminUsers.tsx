@@ -84,33 +84,15 @@ export default function AdminUsers() {
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: UserFormData) => {
-      // Check if email already exists
-      const { data: existingUser } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", userData.email)
-        .maybeSingle();
-
-      if (existingUser) {
-        throw new Error("A user with this email already exists");
-      }
-
-      // Insert new user
-      const { data, error } = await supabase
-        .from("users")
-        .insert({
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone || null,
-          role: userData.role,
-          password: userData.password, // In production, hash this!
-          is_active: true,
-        })
-        .select()
-        .single();
+      // Call the edge function to create user with elevated privileges
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: userData,
+      });
 
       if (error) throw error;
-      return data;
+      if (data.error) throw new Error(data.error);
+      
+      return data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -156,10 +138,13 @@ export default function AdminUsers() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px]" aria-describedby="create-user-description">
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
               </DialogHeader>
+              <p id="create-user-description" className="text-sm text-muted-foreground sr-only">
+                Fill out the form below to create a new user account
+              </p>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
