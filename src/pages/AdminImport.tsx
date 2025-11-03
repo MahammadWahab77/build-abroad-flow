@@ -1,15 +1,15 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileUp, Download, Table, Upload, AlertCircle, CheckCircle, AlertTriangle, Users } from "lucide-react";
+import { FileUp, Download, Upload, AlertCircle, CheckCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import Papa from "papaparse";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FixedSizeList as List } from "react-window";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ParsedLead {
   uid?: string;
@@ -284,14 +284,13 @@ export default function AdminImport() {
     duplicateGroups: new Set(leads.filter(l => l.duplicateGroup).map(l => l.duplicateGroup)).size,
   };
 
-  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const lead = leads[index];
+  const LeadRow = ({ lead }: { lead: ParsedLead }) => {
     const hasErrors = lead.errors && lead.errors.length > 0;
     const hasWarnings = lead.warnings && lead.warnings.length > 0;
     const isDuplicate = lead.isDuplicate;
 
     return (
-      <div style={style} className="px-4 py-2 border-b">
+      <div className="px-4 py-3 border-b hover:bg-muted/50">
         <div className="flex items-start gap-2">
           <div className="flex-1">
             <div className="flex items-center gap-2">
@@ -446,16 +445,11 @@ export default function AdminImport() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
-                    <List
-                      height={400}
-                      itemCount={leads.length}
-                      itemSize={80}
-                      width="100%"
-                    >
-                      {Row}
-                    </List>
-                  </div>
+                  <ScrollArea className="h-[400px] border rounded-lg">
+                    {leads.map((lead, index) => (
+                      <LeadRow key={index} lead={lead} />
+                    ))}
+                  </ScrollArea>
                 </CardContent>
               </Card>
             )}
