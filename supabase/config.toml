@@ -1,13 +1,4 @@
 project_id = "itotbnmuonmmjonenwbp"
 
-[functions.create-user]
-verify_jwt = false
-
-[functions.list-users]
-verify_jwt = false
-
-[functions.setup-admin-users]
-verify_jwt = false
-
 [functions.import-leads]
 verify_jwt = false

@@ -79,9 +79,10 @@ Deno.serve(async (req) => {
       .from('user_roles')
       .select('user_id, profiles(id, name)')
       .eq('role', 'admin')
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
-    const defaultManager = managers?.[0]?.profiles;
+    const defaultManager = (managers?.profiles as unknown) as { id: string; name: string } | null;
 
     for (let i = 0; i < leads.length; i++) {
       const lead = leads[i];
@@ -170,7 +171,7 @@ Deno.serve(async (req) => {
         results.push(newLead);
       } catch (error) {
         console.error(`Error processing lead at row ${i + 1}:`, error);
-        errors.push(`Row ${i + 1}: ${error.message}`);
+        errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -191,7 +192,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Import error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
