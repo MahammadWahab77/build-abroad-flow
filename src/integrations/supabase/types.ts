@@ -224,7 +224,7 @@ export type Database = {
           id: number
           is_visible: boolean
           lead_id: number
-          user_id: number
+          user_id: number | null
           user_uuid: string | null
         }
         Insert: {
@@ -233,7 +233,7 @@ export type Database = {
           id?: number
           is_visible?: boolean
           lead_id: number
-          user_id: number
+          user_id?: number | null
           user_uuid?: string | null
         }
         Update: {
@@ -242,7 +242,7 @@ export type Database = {
           id?: number
           is_visible?: boolean
           lead_id?: number
-          user_id?: number
+          user_id?: number | null
           user_uuid?: string | null
         }
         Relationships: [
@@ -291,7 +291,7 @@ export type Database = {
           lead_id: number
           reason: string | null
           to_stage: string
-          user_id: number
+          user_id: number | null
           user_uuid: string | null
         }
         Insert: {
@@ -301,7 +301,7 @@ export type Database = {
           lead_id: number
           reason?: string | null
           to_stage: string
-          user_id: number
+          user_id?: number | null
           user_uuid?: string | null
         }
         Update: {
@@ -311,7 +311,7 @@ export type Database = {
           lead_id?: number
           reason?: string | null
           to_stage?: string
-          user_id?: number
+          user_id?: number | null
           user_uuid?: string | null
         }
         Relationships: [
@@ -377,7 +377,7 @@ export type Database = {
           task_type: string
           tracking_status: string | null
           tuition_status: string | null
-          user_id: number
+          user_id: number | null
           user_uuid: string | null
           visa_status: string | null
         }
@@ -405,7 +405,7 @@ export type Database = {
           task_type: string
           tracking_status?: string | null
           tuition_status?: string | null
-          user_id: number
+          user_id?: number | null
           user_uuid?: string | null
           visa_status?: string | null
         }
@@ -433,7 +433,7 @@ export type Database = {
           task_type?: string
           tracking_status?: string | null
           tuition_status?: string | null
-          user_id?: number
+          user_id?: number | null
           user_uuid?: string | null
           visa_status?: string | null
         }

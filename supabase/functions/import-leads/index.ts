@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
             lead_id: newLead.id,
             content: `CSV Import: ${lead.remarks}`,
             user_uuid: remarkUserId,
-            user_id: 0, // Legacy field
+            user_id: null, // Legacy field, now nullable
             is_visible: true,
           });
           
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
             from_stage: null,
             to_stage: finalStage,
             user_uuid: historyUserId,
-            user_id: 0, // Legacy field
+            user_id: null, // Legacy field, now nullable
             reason: `Imported and assigned to ${assignedCounselor?.name || 'default counselor'}`,
             created_at: lead.leadCreatedDate || new Date().toISOString(),
           });
