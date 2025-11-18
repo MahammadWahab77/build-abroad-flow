@@ -312,6 +312,11 @@ export default function AdminImport() {
                 {lead.warnings?.join(", ")}
               </div>
             )}
+            {lead.remarks && (
+              <div className="text-sm text-muted-foreground mt-2">
+                <span className="font-medium">Remarks:</span> {lead.remarks}
+              </div>
+            )}
           </div>
         </div>
       </div>
