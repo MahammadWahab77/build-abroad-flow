@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
 
     const results = [];
     const errors = [];
+    let remarksCreated = 0;
 
     // Get default counselor (Likitha) and manager (Anupriya or admin)
     const { data: counselors } = await supabaseAdmin
@@ -94,6 +95,8 @@ Deno.serve(async (req) => {
       }
 
       try {
+        console.log(`Row ${i + 1}: Processing ${lead.studentName}, remarks present: ${!!lead.remarks}`);
+        
         // Smart counselor assignment
         let assignedCounselor = null;
         let finalStage = lead.currentStage || 'Yet to Assign';
@@ -146,13 +149,21 @@ Deno.serve(async (req) => {
         // Create remark if exists
         if (lead.remarks && newLead) {
           const remarkUserId = assignedCounselor?.id || defaultManager?.id || user.id;
-          await supabaseAdmin.from('remarks').insert({
+          const { error: remarkError } = await supabaseAdmin.from('remarks').insert({
             lead_id: newLead.id,
             content: `CSV Import: ${lead.remarks}`,
             user_uuid: remarkUserId,
             user_id: 0, // Legacy field
             is_visible: true,
           });
+          
+          if (remarkError) {
+            console.error(`Error creating remark for lead ${newLead.id} (row ${i + 1}):`, remarkError);
+            errors.push(`Row ${i + 1}: Failed to create remark - ${remarkError.message}`);
+          } else {
+            console.log(`Successfully created remark for lead ${newLead.id}`);
+            remarksCreated++;
+          }
         }
 
         // Create stage history if stage was assigned
@@ -176,7 +187,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Import complete. Imported: ${results.length}, Errors: ${errors.length}`);
+    console.log(`Import complete. Imported: ${results.length}, Errors: ${errors.length}, Remarks created: ${remarksCreated}`);
 
     return new Response(
       JSON.stringify({
