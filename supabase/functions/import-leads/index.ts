@@ -151,6 +151,7 @@ Deno.serve(async (req) => {
             content: `CSV Import: ${lead.remarks}`,
             user_uuid: remarkUserId,
             user_id: 0, // Legacy field
+            is_visible: true,
           });
         }
 
