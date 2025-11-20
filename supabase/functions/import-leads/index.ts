@@ -67,11 +67,11 @@ Deno.serve(async (req) => {
     const errors = [];
     let remarksCreated = 0;
 
-    // Get default counselor (Likitha) and manager (Anupriya or admin)
+    // Get default counselor (Angu Priya) and manager (Anupriya or admin)
     const { data: counselors } = await supabaseAdmin
       .from('profiles')
       .select('id, name')
-      .ilike('name', '%likitha%')
+      .ilike('name', '%angu%')
       .limit(1);
 
     const defaultCounselor = counselors?.[0];
