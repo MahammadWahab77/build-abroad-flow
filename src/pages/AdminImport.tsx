@@ -161,16 +161,15 @@ export default function AdminImport() {
     setFileName(file.name);
     setValidationError("");
     setImportComplete(false);
-    setBypassValidation(false);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: results => {
-        const totalLeads = results.data.length;
-
-        // Check for special bypass account (no validation for any import)
-        if (currentUserEmail === SPECIAL_BYPASS_EMAIL) {
-          setBypassValidation(true);
+    
+    // Check for special bypass account FIRST (before any validation)
+    if (currentUserEmail === SPECIAL_BYPASS_EMAIL) {
+      setBypassValidation(true);
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: results => {
+          const totalLeads = results.data.length;
           // Skip all validation for special account
           const rawLeads = results.data.map((row: any) => ({
             uid: row["UID"],
@@ -191,8 +190,18 @@ export default function AdminImport() {
             description: `Loaded ${totalLeads} leads without validation (Special Account)`,
             variant: "default"
           });
-          return;
         }
+      });
+      return;
+    }
+    
+    // Normal validation flow for other accounts
+    setBypassValidation(false);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: results => {
+        const totalLeads = results.data.length;
 
         // Normal validation flow
         const headers = results.meta.fields || [];
