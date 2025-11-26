@@ -54,6 +54,7 @@ export default function AdminImport() {
   const [importResults, setImportResults] = useState<any>(null);
   const [bypassValidation, setBypassValidation] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     toast
@@ -249,30 +250,63 @@ export default function AdminImport() {
       });
       return;
     }
+    
     setImporting(true);
+    setImportProgress({ current: 0, total: leads.length });
+    
     try {
-      const {
-        data: {
-          session
-        }
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error("Not authenticated");
       }
-      const response = await supabase.functions.invoke('import-leads', {
-        body: {
-          leads,
-          bypassValidation
+
+      // Process in batches of 100 leads
+      const BATCH_SIZE = 100;
+      const totalBatches = Math.ceil(leads.length / BATCH_SIZE);
+      let totalImported = 0;
+      let allErrors: string[] = [];
+
+      for (let i = 0; i < totalBatches; i++) {
+        const start = i * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, leads.length);
+        const batch = leads.slice(start, end);
+
+        setImportProgress({ current: end, total: leads.length });
+
+        const response = await supabase.functions.invoke('import-leads', {
+          body: {
+            leads: batch,
+            bypassValidation
+          }
+        });
+
+        if (response.error) {
+          throw response.error;
         }
-      });
-      if (response.error) {
-        throw response.error;
+
+        if (response.data) {
+          totalImported += response.data.imported || 0;
+          if (response.data.errors && response.data.errors.length > 0) {
+            allErrors = [...allErrors, ...response.data.errors];
+          }
+        }
+
+        // Small delay between batches to avoid rate limiting
+        if (i < totalBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
-      setImportResults(response.data);
+
+      setImportResults({
+        imported: totalImported,
+        errors: allErrors,
+        total: leads.length
+      });
       setImportComplete(true);
+      
       toast({
         title: "Import Complete",
-        description: `Successfully imported ${response.data.imported} leads`
+        description: `Successfully imported ${totalImported} of ${leads.length} leads${allErrors.length > 0 ? ` (${allErrors.length} errors)` : ''}`
       });
     } catch (error: any) {
       console.error("Import error:", error);
@@ -283,6 +317,7 @@ export default function AdminImport() {
       });
     } finally {
       setImporting(false);
+      setImportProgress({ current: 0, total: 0 });
     }
   };
   const handleDownloadTemplate = () => {
@@ -385,8 +420,21 @@ export default function AdminImport() {
                 </CardHeader>
                 <CardContent>
                   <Button className="w-full" onClick={handleImport} disabled={leads.length === 0 || importing || (!bypassValidation && stats.errors > 0)}>
-                    {importing ? "Importing..." : bypassValidation ? "Import All (No Validation)" : "Import Leads"}
+                    {importing ? `Importing... (${importProgress.current}/${importProgress.total})` : bypassValidation ? "Import All (No Validation)" : "Import Leads"}
                   </Button>
+                  {importing && importProgress.total > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs text-muted-foreground text-center mb-1">
+                        {Math.round((importProgress.current / importProgress.total) * 100)}% complete
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
