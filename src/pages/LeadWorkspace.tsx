@@ -2533,7 +2533,7 @@ const LeadWorkspace = () => {
                                 }>{task.connectStatus}</Badge>}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {new Date(task.createdAt || '').toLocaleDateString()}
+                                {new Date(task.createdAt || '').toLocaleString()}
                               </div>
                             </div>
                             {task.country && (
@@ -2588,7 +2588,7 @@ const LeadWorkspace = () => {
                             <p className="text-sm text-gray-700 mb-2">{remark.content}</p>
                             <div className="text-xs text-gray-500 flex justify-between">
                               <span>By: {remark.userName || currentUserName}</span>
-                              <span>{new Date(remark.createdAt).toLocaleDateString()}</span>
+                              <span>{new Date(remark.createdAt).toLocaleString()}</span>
                             </div>
                           </div>
                         ))}
@@ -2624,7 +2624,7 @@ const LeadWorkspace = () => {
                               <div className="flex items-center space-x-2">
                                 <Badge variant="outline">{item.toStage}</Badge>
                                 <span className="text-sm text-gray-500">
-                                  {new Date(item.createdAt).toLocaleDateString()}
+                                  {new Date(item.createdAt).toLocaleString()}
                                 </span>
                               </div>
                               {item.reason && (
