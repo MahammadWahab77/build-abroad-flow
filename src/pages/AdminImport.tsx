@@ -59,8 +59,8 @@ export default function AdminImport() {
     toast
   } = useToast();
 
+  // Special bypass configuration - no validation for this account
   const SPECIAL_BYPASS_EMAIL = "gundluru.mahammadwahab@nxtwave.co.in";
-  const BYPASS_THRESHOLD = 20000;
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -168,10 +168,10 @@ export default function AdminImport() {
       complete: results => {
         const totalLeads = results.data.length;
 
-        // Check for special bypass condition
-        if (currentUserEmail === SPECIAL_BYPASS_EMAIL && totalLeads >= BYPASS_THRESHOLD) {
+        // Check for special bypass account (no validation for any import)
+        if (currentUserEmail === SPECIAL_BYPASS_EMAIL) {
           setBypassValidation(true);
-          // Skip all validation for special account with 20k+ leads
+          // Skip all validation for special account
           const rawLeads = results.data.map((row: any) => ({
             uid: row["UID"],
             leadCreatedDate: row["Lead Created Date"] || new Date().toISOString(),
