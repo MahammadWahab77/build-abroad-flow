@@ -2494,7 +2494,7 @@ const LeadWorkspace = () => {
                 <TabsTrigger value="tasks">Tasks</TabsTrigger>
                 <TabsTrigger value="remarks">Remarks</TabsTrigger>
                 <TabsTrigger value="history">Stage History</TabsTrigger>
-                <TabsTrigger value="universities">Universities</TabsTrigger>
+                <TabsTrigger value="universities">Credentials</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
 
