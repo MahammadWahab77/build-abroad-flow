@@ -97,6 +97,24 @@ Deno.serve(async (req) => {
       try {
         console.log(`Row ${i + 1}: Processing ${lead.studentName}, remarks present: ${!!lead.remarks}`);
         
+        // Helper function to parse and validate timestamp
+        const parseTimestamp = (dateStr: string | undefined): string => {
+          if (!dateStr || dateStr.trim() === '' || dateStr.trim() === ' ') {
+            return new Date().toISOString();
+          }
+          
+          // Try to parse the date
+          const parsedDate = new Date(dateStr);
+          if (isNaN(parsedDate.getTime())) {
+            // Invalid date, use current timestamp
+            return new Date().toISOString();
+          }
+          
+          return parsedDate.toISOString();
+        };
+
+        const validatedTimestamp = parseTimestamp(lead.leadCreatedDate);
+        
         // Smart counselor assignment
         let assignedCounselor = null;
         let finalStage = lead.currentStage || 'Yet to Assign';
@@ -135,7 +153,7 @@ Deno.serve(async (req) => {
             counselor_uuid: assignedCounselor?.id,
             counsellors: assignedCounselor?.name,
             manager_uuid: defaultManager?.id,
-            created_at: lead.leadCreatedDate || new Date().toISOString(),
+            created_at: validatedTimestamp,
           })
           .select()
           .single();
@@ -176,7 +194,7 @@ Deno.serve(async (req) => {
             user_uuid: historyUserId,
             user_id: null, // Legacy field, now nullable
             reason: `Imported and assigned to ${assignedCounselor?.name || 'default counselor'}`,
-            created_at: lead.leadCreatedDate || new Date().toISOString(),
+            created_at: validatedTimestamp,
           });
         }
 
