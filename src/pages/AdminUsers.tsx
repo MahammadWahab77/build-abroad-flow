@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UserPlus, Users as UsersIcon } from "lucide-react";
+import { UserPlus, Users as UsersIcon, Pencil } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,8 @@ type UserFormData = z.infer<typeof userSchema>;
 
 export default function AdminUsers() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -66,6 +69,16 @@ export default function AdminUsers() {
       phone: "",
       role: "counselor",
       password: "",
+    },
+  });
+
+  const editForm = useForm({
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      role: "counselor",
+      is_active: true,
     },
   });
 
@@ -121,8 +134,87 @@ export default function AdminUsers() {
     },
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: async (userData: any) => {
+      const { data, error } = await supabase.functions.invoke('update-user', {
+        body: userData,
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      });
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleUserActiveMutation = useMutation({
+    mutationFn: async ({ userId, is_active }: { userId: string; is_active: boolean }) => {
+      const { data, error } = await supabase.functions.invoke('update-user', {
+        body: { userId, is_active },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({
+        title: "Success",
+        description: "User status updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: UserFormData) => {
     createUserMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: any) => {
+    updateUserMutation.mutate({
+      userId: editingUser.id,
+      ...data,
+    });
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    editForm.reset({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      role: user.role,
+      is_active: user.is_active,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleToggleActive = (userId: string, currentStatus: boolean) => {
+    toggleUserActiveMutation.mutate({ userId, is_active: !currentStatus });
   };
 
   const stats = {
@@ -313,6 +405,7 @@ export default function AdminUsers() {
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -327,14 +420,27 @@ export default function AdminUsers() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {user.is_active ? (
-                          <Badge className="bg-success">Active</Badge>
-                        ) : (
-                          <Badge variant="outline">Inactive</Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.is_active}
+                            onCheckedChange={() => handleToggleActive(user.id, user.is_active)}
+                          />
+                          <span className="text-sm">
+                            {user.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -343,6 +449,122 @@ export default function AdminUsers() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]" aria-describedby="edit-user-description">
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+            </DialogHeader>
+            <p id="edit-user-description" className="text-sm text-muted-foreground sr-only">
+              Update user information
+            </p>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="counselor">Counselor</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Active Status</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Toggle to activate or deactivate user
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditDialogOpen(false);
+                      setEditingUser(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={updateUserMutation.isPending}>
+                    {updateUserMutation.isPending ? "Updating..." : "Update User"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
