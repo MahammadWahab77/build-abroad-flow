@@ -2,7 +2,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileUp, Download, Upload, AlertCircle, CheckCircle } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Papa from "papaparse";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -52,10 +52,25 @@ export default function AdminImport() {
   const [validationError, setValidationError] = useState<string>("");
   const [importComplete, setImportComplete] = useState(false);
   const [importResults, setImportResults] = useState<any>(null);
+  const [bypassValidation, setBypassValidation] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     toast
   } = useToast();
+
+  const SPECIAL_BYPASS_EMAIL = "gundluru.mahammadwahab@nxtwave.co.in";
+  const BYPASS_THRESHOLD = 20000;
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setCurrentUserEmail(user.email);
+      }
+    };
+    getCurrentUser();
+  }, []);
   const normalizeCountry = (country: string): string => {
     if (!country) return "";
     const normalized = COUNTRY_MAP[country.toLowerCase()];
@@ -146,11 +161,40 @@ export default function AdminImport() {
     setFileName(file.name);
     setValidationError("");
     setImportComplete(false);
+    setBypassValidation(false);
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: results => {
-        // Validate headers
+        const totalLeads = results.data.length;
+
+        // Check for special bypass condition
+        if (currentUserEmail === SPECIAL_BYPASS_EMAIL && totalLeads >= BYPASS_THRESHOLD) {
+          setBypassValidation(true);
+          // Skip all validation for special account with 20k+ leads
+          const rawLeads = results.data.map((row: any) => ({
+            uid: row["UID"],
+            leadCreatedDate: row["Lead Created Date"] || new Date().toISOString(),
+            studentName: row["Student Name"]?.trim() || "",
+            intake: row["Intake"],
+            country: row["Country"],
+            source: row["Source"],
+            mobileNumber: row["MobileNumber"],
+            currentStage: row["Current Stage"]?.trim() || "Yet to Assign",
+            remarks: row["Remarks"],
+            counsellors: row["Counsellors"],
+            passportStatus: row["Passport Status"]
+          }));
+          setLeads(rawLeads);
+          toast({
+            title: "Bypass Mode Activated",
+            description: `Loaded ${totalLeads} leads without validation (Special Account)`,
+            variant: "default"
+          });
+          return;
+        }
+
+        // Normal validation flow
         const headers = results.meta.fields || [];
         const missingHeaders = REQUIRED_HEADERS.filter(h => !headers.includes(h));
         const extraHeaders = headers.filter(h => !REQUIRED_HEADERS.includes(h));
@@ -208,7 +252,8 @@ export default function AdminImport() {
       }
       const response = await supabase.functions.invoke('import-leads', {
         body: {
-          leads
+          leads,
+          bypassValidation
         }
       });
       if (response.error) {
@@ -330,8 +375,8 @@ export default function AdminImport() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" onClick={handleImport} disabled={leads.length === 0 || importing || stats.errors > 0}>
-                    {importing ? "Importing..." : "Import Leads"}
+                  <Button className="w-full" onClick={handleImport} disabled={leads.length === 0 || importing || (!bypassValidation && stats.errors > 0)}>
+                    {importing ? "Importing..." : bypassValidation ? "Import All (No Validation)" : "Import Leads"}
                   </Button>
                 </CardContent>
               </Card>

@@ -59,9 +59,9 @@ Deno.serve(async (req) => {
       throw new Error('Admin access required');
     }
 
-    const { leads } = await req.json();
+    const { leads, bypassValidation } = await req.json();
 
-    console.log(`Processing ${leads.length} leads for import`);
+    console.log(`Processing ${leads.length} leads for import${bypassValidation ? ' (BYPASS MODE)' : ''}`);
 
     const results = [];
     const errors = [];
@@ -88,8 +88,8 @@ Deno.serve(async (req) => {
     for (let i = 0; i < leads.length; i++) {
       const lead = leads[i];
 
-      // Skip if there are validation errors
-      if (lead.errors && lead.errors.length > 0) {
+      // Skip if there are validation errors (unless bypass mode)
+      if (!bypassValidation && lead.errors && lead.errors.length > 0) {
         errors.push(`Row ${i + 1}: ${lead.errors.join(', ')}`);
         continue;
       }
