@@ -14,17 +14,35 @@ export default function AdminReports() {
       ]);
 
       const totalLeads = leadsRes.count || 0;
-      const activeLeads = leadsRes.data?.filter(
-        (l) => !["Not Interested", "Irrelevant Lead", "Commission Received"].includes(l.current_stage)
+      const yetToContactLeads = leadsRes.data?.filter(
+        (l) => l.current_stage === "Yet to Contact"
       ).length || 0;
-      const completedLeads = leadsRes.data?.filter((l) => l.current_stage === "Commission Received").length || 0;
-      const conversionRate = totalLeads > 0 ? Math.round((completedLeads / totalLeads) * 100) : 0;
+      const applicationInProgressLeads = leadsRes.data?.filter(
+        (l) => l.current_stage === "Application in Progress"
+      ).length || 0;
+      const commissionReceivedLeads = leadsRes.data?.filter(
+        (l) => l.current_stage === "Commission Received"
+      ).length || 0;
+
+      // Conversion 1: Yet to Contact to Application in Progress
+      const totalEligibleForFirstConversion = yetToContactLeads + applicationInProgressLeads + commissionReceivedLeads;
+      const firstConversionRate = totalEligibleForFirstConversion > 0 
+        ? Math.round(((applicationInProgressLeads + commissionReceivedLeads) / totalEligibleForFirstConversion) * 100) 
+        : 0;
+
+      // Conversion 2: Application in Progress to Commission Received
+      const totalEligibleForSecondConversion = applicationInProgressLeads + commissionReceivedLeads;
+      const secondConversionRate = totalEligibleForSecondConversion > 0
+        ? Math.round((commissionReceivedLeads / totalEligibleForSecondConversion) * 100)
+        : 0;
 
       return {
         totalLeads,
-        activeLeads,
-        completedLeads,
-        conversionRate,
+        yetToContactLeads,
+        applicationInProgressLeads,
+        commissionReceivedLeads,
+        firstConversionRate,
+        secondConversionRate,
         counselorCount: usersRes.data?.length || 0,
       };
     },
@@ -38,20 +56,20 @@ export default function AdminReports() {
       color: "text-primary",
     },
     {
-      title: "Active Leads",
-      value: stats?.activeLeads || 0,
+      title: "Yet to Contact → App in Progress",
+      value: `${stats?.firstConversionRate || 0}%`,
       icon: TrendingUp,
       color: "text-success",
     },
     {
-      title: "Completed",
-      value: stats?.completedLeads || 0,
+      title: "App in Progress → Commission",
+      value: `${stats?.secondConversionRate || 0}%`,
       icon: CheckCircle,
       color: "text-success",
     },
     {
-      title: "Conversion Rate",
-      value: `${stats?.conversionRate || 0}%`,
+      title: "Commission Received",
+      value: stats?.commissionReceivedLeads || 0,
       icon: BarChart3,
       color: "text-primary",
     },
