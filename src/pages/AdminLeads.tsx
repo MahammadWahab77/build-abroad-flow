@@ -58,6 +58,7 @@ export default function AdminLeads() {
   const [intakeFilter, setIntakeFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [counselorFilter, setCounselorFilter] = useState("");
+  const [uidSearch, setUidSearch] = useState("");
 
   // Fetch leads
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
@@ -116,6 +117,7 @@ export default function AdminLeads() {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (lead.phone && lead.phone.includes(searchTerm));
+    const matchesUid = !uidSearch || (lead.uid && lead.uid.toLowerCase().includes(uidSearch.toLowerCase()));
     const matchesCountry = !countryFilter || countryFilter === "all-countries" || lead.country === countryFilter;
     const matchesIntake = !intakeFilter || intakeFilter === "all-intakes" || lead.intake === intakeFilter;
     const matchesSource = !sourceFilter || sourceFilter === "all-sources" || lead.source === sourceFilter;
@@ -123,7 +125,7 @@ export default function AdminLeads() {
       (lead.counselor_uuid && lead.counselor_uuid === counselorFilter) ||
       (counselorFilter === "unassigned" && !lead.counselor_uuid);
     
-    return matchesStage && matchesSearch && matchesCountry && matchesIntake && matchesSource && matchesCounselor;
+    return matchesStage && matchesSearch && matchesUid && matchesCountry && matchesIntake && matchesSource && matchesCounselor;
   });
 
   const bulkAssignMutation = useMutation({
@@ -302,6 +304,15 @@ export default function AdminLeads() {
               />
             </div>
 
+            {/* UID Search */}
+            <div className="flex-1 relative">
+              <Input
+                placeholder="Search by External UID..."
+                value={uidSearch}
+                onChange={(e) => setUidSearch(e.target.value)}
+              />
+            </div>
+
             {/* Bulk Actions */}
             {selectedLeads.length > 0 && (
               <Button 
@@ -386,7 +397,7 @@ export default function AdminLeads() {
             </div>
 
             {/* Clear Filters */}
-            {(countryFilter || intakeFilter || sourceFilter || counselorFilter) && (
+            {(countryFilter || intakeFilter || sourceFilter || counselorFilter || uidSearch) && (
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -395,6 +406,7 @@ export default function AdminLeads() {
                   setIntakeFilter("");
                   setSourceFilter("");
                   setCounselorFilter("");
+                  setUidSearch("");
                 }}
               >
                 Clear Filters
