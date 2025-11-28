@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
@@ -43,6 +43,23 @@ const STAGES = [
   "Commission Received",
 ];
 
+// Custom hook for debouncing
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function AdminLeads() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -60,31 +77,91 @@ export default function AdminLeads() {
   const [counselorFilter, setCounselorFilter] = useState("");
   const [uidSearch, setUidSearch] = useState("");
 
-  // Fetch leads
-  const { data: leads = [], isLoading: leadsLoading } = useQuery({
-    queryKey: ["admin-leads"],
+  // Debounce search inputs for server-side search (300ms delay)
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const debouncedUidSearch = useDebounce(uidSearch, 300);
+
+  // Fetch leads with server-side filtering
+  const { data: leadsData = { leads: [], totalCount: 0 }, isLoading: leadsLoading, isFetching } = useQuery({
+    queryKey: [
+      "admin-leads", 
+      debouncedSearchTerm, 
+      debouncedUidSearch, 
+      selectedStages, 
+      countryFilter, 
+      intakeFilter, 
+      sourceFilter, 
+      counselorFilter
+    ],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("leads")
         .select(`
           *,
           profiles:counselor_uuid(name)
-        `)
-        .order("updated_at", { ascending: false });
+        `, { count: 'exact' });
+
+      // Server-side search across name, email, phone
+      if (debouncedSearchTerm) {
+        query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone.ilike.%${debouncedSearchTerm}%`);
+      }
+
+      // Server-side UID search
+      if (debouncedUidSearch) {
+        query = query.ilike('uid', `%${debouncedUidSearch}%`);
+      }
+
+      // Server-side stage filter
+      if (selectedStages.length > 0) {
+        query = query.in('current_stage', selectedStages);
+      }
+
+      // Server-side country filter
+      if (countryFilter && countryFilter !== "all-countries") {
+        query = query.eq('country', countryFilter);
+      }
+
+      // Server-side intake filter
+      if (intakeFilter && intakeFilter !== "all-intakes") {
+        query = query.eq('intake', intakeFilter);
+      }
+
+      // Server-side source filter
+      if (sourceFilter && sourceFilter !== "all-sources") {
+        query = query.eq('source', sourceFilter);
+      }
+
+      // Server-side counselor filter
+      if (counselorFilter && counselorFilter !== "all-counselors") {
+        if (counselorFilter === "unassigned") {
+          query = query.is('counselor_uuid', null);
+        } else {
+          query = query.eq('counselor_uuid', counselorFilter);
+        }
+      }
+
+      const { data, error, count } = await query
+        .order("updated_at", { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
-      return data.map((lead: any) => ({
+      
+      const mappedLeads = (data || []).map((lead: any) => ({
         ...lead,
         counselorName: lead.profiles?.name || null
-      })) || [];
+      }));
+
+      return { leads: mappedLeads, totalCount: count || 0 };
     },
   });
+
+  const leads = leadsData.leads;
+  const totalCount = leadsData.totalCount;
 
   // Fetch counselors
   const { data: counselors = [] } = useQuery({
     queryKey: ["counselors"],
     queryFn: async () => {
-      // Step 1: get counselor user IDs from user_roles (no FK join available)
       const { data: roleRows, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -94,7 +171,6 @@ export default function AdminLeads() {
       const ids = (roleRows || []).map((r: any) => r.user_id);
       if (ids.length === 0) return [] as any[];
 
-      // Step 2: fetch active profiles for those IDs
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -106,27 +182,28 @@ export default function AdminLeads() {
     },
   });
 
-  // Get unique filter values from leads data
-  const countries = Array.from(new Set(leads.map((lead: any) => lead.country).filter(Boolean))) as string[];
-  const intakes = Array.from(new Set(leads.map((lead: any) => lead.intake).filter(Boolean))) as string[];
-  const sources = Array.from(new Set(leads.map((lead: any) => lead.source).filter(Boolean))) as string[];
-
-  // Enhanced filtering with multiple criteria
-  const filteredLeads = leads.filter((lead: any) => {
-    const matchesStage = selectedStages.length === 0 || selectedStages.includes(lead.current_stage);
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (lead.phone && lead.phone.includes(searchTerm));
-    const matchesUid = !uidSearch || (lead.uid && lead.uid.toLowerCase().includes(uidSearch.toLowerCase()));
-    const matchesCountry = !countryFilter || countryFilter === "all-countries" || lead.country === countryFilter;
-    const matchesIntake = !intakeFilter || intakeFilter === "all-intakes" || lead.intake === intakeFilter;
-    const matchesSource = !sourceFilter || sourceFilter === "all-sources" || lead.source === sourceFilter;
-    const matchesCounselor = !counselorFilter || counselorFilter === "all-counselors" || 
-      (lead.counselor_uuid && lead.counselor_uuid === counselorFilter) ||
-      (counselorFilter === "unassigned" && !lead.counselor_uuid);
-    
-    return matchesStage && matchesSearch && matchesUid && matchesCountry && matchesIntake && matchesSource && matchesCounselor;
+  // Fetch filter options separately (all unique values from database)
+  const { data: filterOptions = { countries: [], intakes: [], sources: [] } } = useQuery({
+    queryKey: ["lead-filter-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("country, intake, source");
+      
+      if (error) throw error;
+      
+      const countries = Array.from(new Set((data || []).map((l: any) => l.country).filter(Boolean))) as string[];
+      const intakes = Array.from(new Set((data || []).map((l: any) => l.intake).filter(Boolean))) as string[];
+      const sources = Array.from(new Set((data || []).map((l: any) => l.source).filter(Boolean))) as string[];
+      
+      return { countries, intakes, sources };
+    },
   });
+
+  const { countries, intakes, sources } = filterOptions;
+
+  // No client-side filtering needed - all filtering is server-side
+  const filteredLeads = leads;
 
   const bulkAssignMutation = useMutation({
     mutationFn: async ({ leadIds, counselorId }: { leadIds: number[], counselorId: string }) => {
@@ -297,11 +374,14 @@ export default function AdminLeads() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search leads..."
+                placeholder="Search all leads (name, email, phone)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
+              {isFetching && searchTerm && (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
             </div>
 
             {/* UID Search */}
@@ -311,6 +391,9 @@ export default function AdminLeads() {
                 value={uidSearch}
                 onChange={(e) => setUidSearch(e.target.value)}
               />
+              {isFetching && uidSearch && (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
             </div>
 
             {/* Bulk Actions */}
@@ -416,9 +499,11 @@ export default function AdminLeads() {
         </div>
 
         {/* Results Summary */}
-        <div className="text-sm text-muted-foreground">
-          Showing {filteredLeads.length} of {leads.length} leads
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          {isFetching && <Loader2 className="h-3 w-3 animate-spin" />}
+          Showing {filteredLeads.length} of {totalCount.toLocaleString()} total leads
           {selectedStages.length > 0 && ` in ${selectedStages.length} stage${selectedStages.length > 1 ? 's' : ''}`}
+          {(debouncedSearchTerm || debouncedUidSearch) && " (searching all records)"}
         </div>
 
         {/* Bulk Assignment Card */}
