@@ -261,47 +261,12 @@ export default function AdminLeads() {
     return "bg-success/10 text-success";
   };
 
-  const deleteAllLeadsMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('delete-all-leads');
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
-      toast({ title: "Success", description: "All leads deleted successfully" });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to delete leads", 
-        variant: "destructive" 
-      });
-    }
-  });
-
-  const handleDeleteAll = () => {
-    if (confirm('Are you sure you want to delete ALL leads? This action cannot be undone!')) {
-      deleteAllLeadsMutation.mutate();
-    }
-  };
-
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">All Leads</h1>
-            <p className="text-muted-foreground">Manage all student leads</p>
-          </div>
-          <Button 
-            variant="destructive" 
-            onClick={handleDeleteAll}
-            disabled={deleteAllLeadsMutation.isPending}
-          >
-            {deleteAllLeadsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Delete All Leads
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold">All Leads</h1>
+          <p className="text-muted-foreground">Manage all student leads</p>
         </div>
 
         {/* Controls */}
