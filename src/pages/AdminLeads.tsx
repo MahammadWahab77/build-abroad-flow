@@ -559,6 +559,7 @@ export default function AdminLeads() {
                     />
                   </TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>External UID</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Country</TableHead>
@@ -572,14 +573,14 @@ export default function AdminLeads() {
               <TableBody>
                 {leadsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                       <div>Loading leads...</div>
                     </TableCell>
                   </TableRow>
                 ) : filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <div className="text-muted-foreground">
                         No leads found matching your filters
                       </div>
@@ -595,6 +596,7 @@ export default function AdminLeads() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{lead.name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{lead.uid || "-"}</TableCell>
                       <TableCell>{lead.email || "-"}</TableCell>
                       <TableCell>{lead.phone}</TableCell>
                       <TableCell>{lead.country || "-"}</TableCell>
