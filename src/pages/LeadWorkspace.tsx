@@ -166,7 +166,7 @@ const DROPDOWN_OPTIONS = {
   shortlistingInitiated: ['Requested In KC', 'Done by own'],
   shortlistingStatus: ['New Shortlisting', 'Add-on Shortlisting'],
   shortlistingFinalStatus: ['Sent to students', 'Yet to send'],
-  applicationProcess: ['New Application Initiated at KC', 'Add-on Application Initiated at KC'],
+  applicationProcess: ['New Direct Application', 'Addon direct application'],
   trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking'],
   applicationStatus: ['Application submitted to KC', 'Application submitted to university', 'Docs Pending', 'In Progress', 'Awaiting decision', 'Accepted', 'Rejected'],
   offerLetterStatus: ['Conditional', 'Unconditional'],
@@ -745,7 +745,7 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
                   name="applicationCount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>How many applications submitted to KC?</FormLabel>
+                      <FormLabel>How many applications submitted?</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="Enter count" {...field} />
                       </FormControl>
