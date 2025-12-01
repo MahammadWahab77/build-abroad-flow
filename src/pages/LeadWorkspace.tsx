@@ -141,7 +141,7 @@ const DROPDOWN_OPTIONS = {
   taskType: ['Call', 'Meet Done', 'Shortlisting', 'Application Process', 'Tracking', 'Submit Documents'],
   callType: ['Intro Call', 'Session Follow up call', 'Session Reminder Call', 'Followup Call'],
   callStatus: ['Call Done', 'Call Back', 'Call Rejected', 'Switch Off', 'Not Reachable', 'Not Answered', 'Call Busy', 'Wrong Number'],
-  connectStatus: ['Interested', 'Not Interested', 'Planning later', 'Yet to Decide', 'Irrelevant', 'DNP', 'Call back', 'Call Rejected', 'Other Preferred Language', 'Casual Follow-up', 'Session Scheduling'],
+  connectStatus: ['Interested', 'Not Interested', 'Planning later', 'Yet to Decide', 'Irrelevant', 'DNP', 'Call back', 'Call Rejected', 'Other Preferred Language', 'Casual Follow-up', 'Session Scheduling', 'Session don\'t joined'],
   country: ['USA', 'Canada', 'UK', 'Australia', 'Singapore', 'Germany', 'Ireland', 'New Zealand'],
   intake: ['Fall 2024', 'Spring 2025', 'Fall 2025', 'Spring 2026', 'Fall 2026'],
   prevConsultancy: ['Application Started', 'Offer Received', 'In Loan Process', "No, haven't started", 'Session Scheduled'],
