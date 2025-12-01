@@ -167,10 +167,11 @@ const DROPDOWN_OPTIONS = {
   shortlistingStatus: ['New Shortlisting', 'Add-on Shortlisting'],
   shortlistingFinalStatus: ['Sent to students', 'Yet to send'],
   applicationProcess: ['New Direct Application', 'Addon direct application', 'New Application Initiated at KC', 'Add-on Application Initiated at KC'],
-  trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking'],
+  trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking', 'Loan Process'],
   applicationStatus: ['Application submitted to KC', 'Application submitted to university', 'Docs Pending', 'In Progress', 'Awaiting decision', 'Accepted', 'Rejected'],
   offerLetterStatus: ['Conditional', 'Unconditional'],
   visaStatus: ['Applied', 'In Process', 'Approved', 'Rejected'],
+  loanStatus: ['Applied', 'In Process', 'Approved', 'Rejected'],
   depositStatus: ['Paid', 'Pending', 'Not Required'],
   tuitionStatus: ['Paid', 'Pending', 'Partial Payment'],
   commissionStatus: ['Received', 'Pending', 'Processing'],
@@ -303,6 +304,7 @@ const taskSchema = z.object({
   applicationStatus: z.string().optional(),
   offerLetterStatus: z.string().optional(),
   visaStatus: z.string().optional(),
+  loanStatus: z.string().optional(),
   depositStatus: z.string().optional(),
   tuitionStatus: z.string().optional(),
   commissionStatus: z.string().optional(),
@@ -421,6 +423,7 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
       applicationStatus: '',
       offerLetterStatus: '',
       visaStatus: '',
+      loanStatus: '',
       depositStatus: '',
       tuitionStatus: '',
       commissionStatus: '',
@@ -1041,6 +1044,34 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
                       </FormControl>
                       <SelectContent>
                         {DROPDOWN_OPTIONS.applicationStatus.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Loan Status tracking */}
+            {watchedValues.taskType === 'Tracking' && watchedValues.trackingStatus === 'Loan Process' && (
+              <FormField
+                control={form.control}
+                name="loanStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Loan Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.loanStatus.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
                           </SelectItem>
