@@ -64,16 +64,28 @@ const PIPELINE_STAGES = [
 
 // Dynamic filter data with relationships
 const FILTER_DATA = {
-  // Country-specific intakes and universities
+  // Standard intakes for all countries
   countryIntakes: {
-    'USA': ['Fall 2024', 'Spring 2025', 'Fall 2025', 'Spring 2026'],
-    'Canada': ['Fall 2024', 'Winter 2025', 'Summer 2025', 'Fall 2025'],
-    'UK': ['September 2024', 'January 2025', 'September 2025'],
-    'Australia': ['February 2025', 'July 2025', 'February 2026'],
-    'Singapore': ['August 2024', 'January 2025', 'August 2025'],
-    'Germany': ['Winter 2024/25', 'Summer 2025', 'Winter 2025/26'],
-    'Ireland': ['September 2024', 'January 2025', 'September 2025'],
-    'New Zealand': ['February 2025', 'July 2025', 'February 2026'],
+    'USA': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'UK': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Australia': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Canada': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Germany - Public': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Germany - Private': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Ireland': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Singapore': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Sweden': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'France': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Italy': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'China': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Japan': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Dubai': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Switzerland': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Austria': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Finland': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Newzealand': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Netherlands': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
+    'Yet to decide': ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
   },
   
   // Popular universities by country and intake
