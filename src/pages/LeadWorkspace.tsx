@@ -167,7 +167,7 @@ const DROPDOWN_OPTIONS = {
   shortlistingStatus: ['New Shortlisting', 'Add-on Shortlisting'],
   shortlistingFinalStatus: ['Sent to students', 'Yet to send'],
   applicationProcess: ['New Direct Application', 'Addon direct application', 'New Application Initiated at KC', 'Add-on Application Initiated at KC'],
-  trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking', 'Loan Process'],
+  trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking', 'Loan Process', 'Deposit Paid'],
   applicationStatus: ['Application submitted to KC', 'Application submitted to university', 'Docs Pending', 'In Progress', 'Awaiting decision', 'Accepted', 'Rejected'],
   offerLetterStatus: ['Conditional', 'Unconditional'],
   visaStatus: ['Applied', 'In Process', 'Approved', 'Rejected'],
@@ -201,7 +201,7 @@ const requiresFollowUpDate = (connectStatus: string, sessionStatus: string) => {
 
 // Stage progression logic
 const getNextStageFromTask = (taskData: any, currentStage: string) => {
-  const { taskType, connectStatus, callStatus, shortlistingFinalStatus, applicationProcess, trackingStatus, offerLetterStatus, visaStatus, sessionStatus } = taskData;
+  const { taskType, connectStatus, callStatus, shortlistingFinalStatus, applicationProcess, trackingStatus, offerLetterStatus, visaStatus, depositStatus, sessionStatus } = taskData;
 
   if (taskType === 'Call') {
     // Handle new call status logic
@@ -273,6 +273,9 @@ const getNextStageFromTask = (taskData: any, currentStage: string) => {
     }
     if (trackingStatus === 'VISA Tracking' && visaStatus === 'Approved') {
       return 'Visa Received';
+    }
+    if (trackingStatus === 'Deposit Paid' && depositStatus === 'Paid') {
+      return 'Deposit Paid';
     }
   }
 
@@ -1128,6 +1131,34 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
                       </FormControl>
                       <SelectContent>
                         {DROPDOWN_OPTIONS.visaStatus.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Deposit Paid tracking */}
+            {watchedValues.taskType === 'Tracking' && watchedValues.trackingStatus === 'Deposit Paid' && (
+              <FormField
+                control={form.control}
+                name="depositStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deposit Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.depositStatus.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
                           </SelectItem>
