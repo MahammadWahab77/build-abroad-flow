@@ -142,7 +142,7 @@ const DROPDOWN_OPTIONS = {
   callType: ['Intro Call', 'Session Follow up call', 'Session Reminder Call', 'Followup Call'],
   callStatus: ['Call Done', 'Call Back', 'Call Rejected', 'Switch Off', 'Not Reachable', 'Not Answered', 'Call Busy', 'Wrong Number'],
   connectStatus: ['Interested', 'Not Interested', 'Planning later', 'Yet to Decide', 'Irrelevant', 'DNP', 'Call back', 'Call Rejected', 'Other Preferred Language', 'Casual Follow-up', 'Session Scheduling', 'Session don\'t joined'],
-  country: ['USA', 'Canada', 'UK', 'Australia', 'Singapore', 'Germany', 'Ireland', 'New Zealand'],
+  country: ['USA', 'UK', 'Australia', 'Germany - Public', 'Ireland', 'Sweden', 'France', 'Italy', 'Canada', 'China', 'Japan', 'Singapore', 'Dubai', 'Yet to decide', 'Switzerland', 'Austria', 'Finland', 'Newzealand', 'Germany - Private', 'Netherlands'],
   intake: ['Fall 2024', 'Spring 2025', 'Fall 2025', 'Spring 2026', 'Fall 2026'],
   prevConsultancy: ['Application Started', 'Offer Received', 'In Loan Process', "No, haven't started", 'Session Scheduled'],
   sessionStatus: ['Confirmed, Will attend', 'Rescheduled', 'Cancelled', 'Completed'],
