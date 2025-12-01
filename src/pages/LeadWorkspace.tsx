@@ -166,7 +166,7 @@ const DROPDOWN_OPTIONS = {
   shortlistingInitiated: ['Requested In KC', 'Done by own'],
   shortlistingStatus: ['New Shortlisting', 'Add-on Shortlisting'],
   shortlistingFinalStatus: ['Sent to students', 'Yet to send'],
-  applicationProcess: ['New Direct Application', 'Addon direct application'],
+  applicationProcess: ['New Direct Application', 'Addon direct application', 'New Application Initiated at KC', 'Add-on Application Initiated at KC'],
   trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking'],
   applicationStatus: ['Application submitted to KC', 'Application submitted to university', 'Docs Pending', 'In Progress', 'Awaiting decision', 'Accepted', 'Rejected'],
   offerLetterStatus: ['Conditional', 'Unconditional'],
