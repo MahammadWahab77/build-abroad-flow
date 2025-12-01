@@ -143,7 +143,7 @@ const DROPDOWN_OPTIONS = {
   callStatus: ['Call Done', 'Call Back', 'Call Rejected', 'Switch Off', 'Not Reachable', 'Not Answered', 'Call Busy', 'Wrong Number'],
   connectStatus: ['Interested', 'Not Interested', 'Planning later', 'Yet to Decide', 'Irrelevant', 'DNP', 'Call back', 'Call Rejected', 'Other Preferred Language', 'Casual Follow-up', 'Session Scheduling', 'Session don\'t joined'],
   country: ['USA', 'UK', 'Australia', 'Germany - Public', 'Ireland', 'Sweden', 'France', 'Italy', 'Canada', 'China', 'Japan', 'Singapore', 'Dubai', 'Yet to decide', 'Switzerland', 'Austria', 'Finland', 'Newzealand', 'Germany - Private', 'Netherlands'],
-  intake: ['Fall 2024', 'Spring 2025', 'Fall 2025', 'Spring 2026', 'Fall 2026'],
+  intake: ['Spring 2025', 'Summer 2025', 'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026', 'Fall 2026', 'Winter 2026', 'Spring 2027', 'Summer 2027', 'Fall 2027', 'Winter 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Winter 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Winter 2029'],
   prevConsultancy: ['Application Started', 'Offer Received', 'In Loan Process', "No, haven't started", 'Session Scheduled'],
   sessionStatus: ['Confirmed, Will attend', 'Rescheduled', 'Cancelled', 'Completed'],
   isRescheduled: ['Yes', 'No'],
