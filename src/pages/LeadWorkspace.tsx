@@ -173,7 +173,8 @@ const DROPDOWN_OPTIONS = {
   visaStatus: ['Applied', 'In Process', 'Approved', 'Rejected'],
   depositStatus: ['Paid', 'Pending', 'Not Required'],
   tuitionStatus: ['Paid', 'Pending', 'Partial Payment'],
-  commissionStatus: ['Received', 'Pending', 'Processing']
+  commissionStatus: ['Received', 'Pending', 'Processing'],
+  submittedInKCPortal: ['Yes', 'No']
 };
 
 // Dynamic filtering utilities
@@ -188,8 +189,8 @@ const getFilteredUniversities = (country: string, intake: string): string[] => {
 };
 
 // Check if task type requires specific fields
-const requiresUniversityDetails = (taskType: string, trackingStatus: string) => {
-  return taskType === 'Tracking' && trackingStatus === 'Credentials logging';
+const requiresUniversityDetails = (taskType: string, trackingStatus: string, submittedInKCPortal: string) => {
+  return taskType === 'Tracking' && trackingStatus === 'Credentials logging' && submittedInKCPortal === 'No';
 };
 
 const requiresFollowUpDate = (connectStatus: string, sessionStatus: string) => {
@@ -312,6 +313,7 @@ const taskSchema = z.object({
   password: z.string().optional(),
   reasonNotInterested: z.string().optional(),
   preferredLanguage: z.string().optional(),
+  submittedInKCPortal: z.string().optional(),
 }).refine((data) => {
   // Call Status is required when task type is Call
   if (data.taskType === 'Call' && (!data.callStatus || data.callStatus.trim() === '')) {
@@ -367,7 +369,8 @@ const useDynamicFilters = (form: any) => {
   
   // Conditional field requirements
   const needsFollowUpDate = requiresFollowUpDate(watchedValues.connectStatus, watchedValues.sessionStatus);
-  const needsUniversityDetails = requiresUniversityDetails(watchedValues.taskType, watchedValues.trackingStatus);
+  const needsUniversityDetails = requiresUniversityDetails(watchedValues.taskType, watchedValues.trackingStatus, watchedValues.submittedInKCPortal);
+  const showCredentialsLogging = watchedValues.taskType === 'Tracking' && watchedValues.trackingStatus === 'Credentials logging';
   const showSessionFields = (watchedValues.taskType === 'Call' || watchedValues.taskType === 'Meet Done') && 
                            watchedValues.connectStatus === 'Session Scheduling';
   
@@ -383,6 +386,7 @@ const useDynamicFilters = (form: any) => {
     availableUniversities,
     needsFollowUpDate,
     needsUniversityDetails,
+    showCredentialsLogging,
     showSessionFields,
     showCallFields,
     showShortlistingFields,
@@ -427,6 +431,7 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
       password: '',
       reasonNotInterested: '',
       preferredLanguage: '',
+      submittedInKCPortal: '',
     },
   });
 
@@ -436,6 +441,7 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
     availableUniversities,
     needsFollowUpDate,
     needsUniversityDetails,
+    showCredentialsLogging,
     showSessionFields,
     showCallFields,
     showShortlistingFields,
@@ -904,7 +910,35 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
               />
             )}
 
-            {/* Tracking details */}
+            {/* Submitted in KC Portal - for Credentials logging */}
+            {showCredentialsLogging && (
+              <FormField
+                control={form.control}
+                name="submittedInKCPortal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Submitted in KC Portal</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-kc-portal">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.submittedInKCPortal.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Tracking details - University credentials (only when NOT submitted in KC Portal) */}
             {needsUniversityDetails && (
               <div className="space-y-4">
                 <FormField
@@ -942,7 +976,6 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
                             } 
                             {...field} 
                             data-testid="input-university-custom"
-                            disabled={!watchedValues.country || !watchedValues.intake}
                           />
                         </FormControl>
                       )}
