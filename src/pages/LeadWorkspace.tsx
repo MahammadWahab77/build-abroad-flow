@@ -1659,7 +1659,7 @@ const LeadDataCard = ({ lead, lastTask }: { lead: LeadData; lastTask: TaskData |
             <p><span className="font-medium">Phone:</span> {lead.phone}</p>
             <p><span className="font-medium">Country:</span> {lead.country || '-'}</p>
             <p><span className="font-medium">Course:</span> {lead.course || '-'}</p>
-            <p><span className="font-medium">Intake:</span> {lead.intake || '-'}</p>
+            <p><span className="font-medium">Intake:</span> {lead.intake ? lead.intake.replace(' ', ' - ') : '-'}</p>
           </div>
         </div>
         {lastTask && (
