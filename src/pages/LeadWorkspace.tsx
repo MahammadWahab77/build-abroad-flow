@@ -1570,9 +1570,20 @@ const EditLeadModal = ({ lead, onSuccess }: { lead: any; onSuccess: () => void }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Intake</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Intake period" data-testid="input-edit-intake" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-intake">
+                          <SelectValue placeholder="Select intake..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.intake.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option.replace(' ', ' - ')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
