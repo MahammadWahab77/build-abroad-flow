@@ -167,12 +167,13 @@ const DROPDOWN_OPTIONS = {
   shortlistingStatus: ['New Shortlisting', 'Add-on Shortlisting'],
   shortlistingFinalStatus: ['Sent to students', 'Yet to send'],
   applicationProcess: ['New Direct Application', 'Addon direct application', 'New Application Initiated at KC', 'Add-on Application Initiated at KC'],
-  trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking', 'Loan Process', 'Deposit Paid'],
+  trackingStatus: ['Credentials logging', 'Application Status', 'Offer Letter Status', 'VISA Tracking', 'Loan Process', 'Deposit Paid', 'Flight and Accommodation', 'Tuition Fee', 'Commission'],
   applicationStatus: ['Application submitted to KC', 'Application submitted to university', 'Docs Pending', 'In Progress', 'Awaiting decision', 'Accepted', 'Rejected'],
   offerLetterStatus: ['Conditional', 'Unconditional'],
   visaStatus: ['Applied', 'In Process', 'Approved', 'Rejected'],
   loanStatus: ['Applied', 'In Process', 'Approved', 'Rejected'],
   depositStatus: ['Paid', 'Pending', 'Not Required'],
+  flightStatus: ['Booked', 'In Process', 'Not Required'],
   tuitionStatus: ['Paid', 'Pending', 'Partial Payment'],
   commissionStatus: ['Received', 'Pending', 'Processing'],
   submittedInKCPortal: ['Yes', 'No']
@@ -277,6 +278,15 @@ const getNextStageFromTask = (taskData: any, currentStage: string) => {
     if (trackingStatus === 'Deposit Paid' && depositStatus === 'Paid') {
       return 'Deposit Paid';
     }
+    if (trackingStatus === 'Flight and Accommodation' && taskData.flightStatus === 'Booked') {
+      return 'Flight and Accommodation Booked';
+    }
+    if (trackingStatus === 'Tuition Fee' && taskData.tuitionStatus === 'Paid') {
+      return 'Tuition Fee Paid';
+    }
+    if (trackingStatus === 'Commission' && taskData.commissionStatus === 'Received') {
+      return 'Commission Received';
+    }
   }
 
   if (taskType === 'Submit Documents') {
@@ -309,6 +319,7 @@ const taskSchema = z.object({
   visaStatus: z.string().optional(),
   loanStatus: z.string().optional(),
   depositStatus: z.string().optional(),
+  flightStatus: z.string().optional(),
   tuitionStatus: z.string().optional(),
   commissionStatus: z.string().optional(),
   remarks: z.string().min(1, 'Remarks are required for all tasks'),
@@ -1159,6 +1170,90 @@ const TaskComposer = ({ onTaskComplete, currentStage }: { onTaskComplete: (taskD
                       </FormControl>
                       <SelectContent>
                         {DROPDOWN_OPTIONS.depositStatus.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Flight and Accommodation tracking */}
+            {watchedValues.taskType === 'Tracking' && watchedValues.trackingStatus === 'Flight and Accommodation' && (
+              <FormField
+                control={form.control}
+                name="flightStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Flight & Accommodation Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.flightStatus.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Tuition Fee tracking */}
+            {watchedValues.taskType === 'Tracking' && watchedValues.trackingStatus === 'Tuition Fee' && (
+              <FormField
+                control={form.control}
+                name="tuitionStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tuition Fee Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.tuitionStatus.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Commission tracking */}
+            {watchedValues.taskType === 'Tracking' && watchedValues.trackingStatus === 'Commission' && (
+              <FormField
+                control={form.control}
+                name="commissionStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Commission Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DROPDOWN_OPTIONS.commissionStatus.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
                           </SelectItem>

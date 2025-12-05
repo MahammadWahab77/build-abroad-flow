@@ -19,6 +19,7 @@ export interface TaskData {
   offerLetterStatus?: string;
   visaStatus?: string;
   depositStatus?: string;
+  flightStatus?: string;
   tuitionStatus?: string;
   commissionStatus?: string;
   remarks?: string;
