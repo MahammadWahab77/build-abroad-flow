@@ -363,6 +363,7 @@ export type Database = {
           connect_status: string | null
           created_at: string
           deposit_status: string | null
+          flight_status: string | null
           id: number
           is_rescheduled: boolean | null
           lead_id: number
@@ -391,6 +392,7 @@ export type Database = {
           connect_status?: string | null
           created_at?: string
           deposit_status?: string | null
+          flight_status?: string | null
           id?: number
           is_rescheduled?: boolean | null
           lead_id: number
@@ -419,6 +421,7 @@ export type Database = {
           connect_status?: string | null
           created_at?: string
           deposit_status?: string | null
+          flight_status?: string | null
           id?: number
           is_rescheduled?: boolean | null
           lead_id?: number
