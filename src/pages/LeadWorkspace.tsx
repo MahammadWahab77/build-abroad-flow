@@ -2143,6 +2143,7 @@ const LeadWorkspace = () => {
         offerLetterStatus: task.offer_letter_status || undefined,
         visaStatus: task.visa_status || undefined,
         depositStatus: task.deposit_status || undefined,
+        flightStatus: (task as any).flight_status || undefined,
         tuitionStatus: task.tuition_status || undefined,
         commissionStatus: task.commission_status || undefined,
         remarks: task.remarks || undefined,
@@ -2257,6 +2258,7 @@ const LeadWorkspace = () => {
           offer_letter_status: taskData.offerLetterStatus || null,
           visa_status: taskData.visaStatus || null,
           deposit_status: taskData.depositStatus || null,
+          flight_status: taskData.flightStatus || null,
           tuition_status: taskData.tuitionStatus || null,
           commission_status: taskData.commissionStatus || null,
           remarks: taskData.remarks || null,
@@ -2319,6 +2321,36 @@ const LeadWorkspace = () => {
       if (taskData.offerLetterStatus) {
         newStage = 'Offer Letter Received';
         stageReason = 'Offer letter received from university';
+      }
+
+      // Handle visa approval
+      if (taskData.trackingStatus === 'VISA Tracking' && taskData.visaStatus === 'Approved') {
+        newStage = 'Visa Received';
+        stageReason = 'Visa approved';
+      }
+
+      // Handle deposit paid
+      if (taskData.trackingStatus === 'Deposit Paid' && taskData.depositStatus === 'Paid') {
+        newStage = 'Deposit Paid';
+        stageReason = 'Deposit payment completed';
+      }
+
+      // Handle flight and accommodation booked
+      if (taskData.trackingStatus === 'Flight and Accommodation' && taskData.flightStatus === 'Booked') {
+        newStage = 'Flight and Accommodation Booked';
+        stageReason = 'Flight and accommodation booked';
+      }
+
+      // Handle tuition fee paid
+      if (taskData.trackingStatus === 'Tuition Fee' && taskData.tuitionStatus === 'Paid') {
+        newStage = 'Tuition Fee Paid';
+        stageReason = 'Tuition fee payment completed';
+      }
+
+      // Handle commission received
+      if (taskData.trackingStatus === 'Commission' && taskData.commissionStatus === 'Received') {
+        newStage = 'Commission Received';
+        stageReason = 'Commission received from university';
       }
 
       // Update stage if needed
