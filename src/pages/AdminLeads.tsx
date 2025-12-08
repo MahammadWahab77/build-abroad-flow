@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, UserPlus, Loader2, ChevronDown } from "lucide-react";
+import { Search, Filter, UserPlus, Loader2, ChevronDown, ArrowRightLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const STAGES = [
@@ -69,6 +69,8 @@ export default function AdminLeads() {
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [selectedCounselor, setSelectedCounselor] = useState("");
   const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [showBulkStageChange, setShowBulkStageChange] = useState(false);
+  const [selectedNewStage, setSelectedNewStage] = useState("");
   
   // Dynamic filter states
   const [countryFilter, setCountryFilter] = useState("");
@@ -226,6 +228,27 @@ export default function AdminLeads() {
     }
   });
 
+  const bulkStageChangeMutation = useMutation({
+    mutationFn: async ({ leadIds, newStage }: { leadIds: number[], newStage: string }) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ current_stage: newStage })
+        .in("id", leadIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+      toast({ title: "Success", description: "Lead stages updated successfully" });
+      setSelectedLeads([]);
+      setSelectedNewStage("");
+      setShowBulkStageChange(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update lead stages", variant: "destructive" });
+    }
+  });
+
   const handleSelectLead = (leadId: number) => {
     setSelectedLeads(prev => 
       prev.includes(leadId) 
@@ -245,6 +268,12 @@ export default function AdminLeads() {
   const handleBulkAssign = () => {
     if (selectedLeads.length > 0 && selectedCounselor) {
       bulkAssignMutation.mutate({ leadIds: selectedLeads, counselorId: selectedCounselor });
+    }
+  };
+
+  const handleBulkStageChange = () => {
+    if (selectedLeads.length > 0 && selectedNewStage) {
+      bulkStageChangeMutation.mutate({ leadIds: selectedLeads, newStage: selectedNewStage });
     }
   };
 
@@ -363,13 +392,23 @@ export default function AdminLeads() {
 
             {/* Bulk Actions */}
             {selectedLeads.length > 0 && (
-              <Button 
-                onClick={() => setShowBulkAssign(true)}
-                className="whitespace-nowrap"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Assign Selected ({selectedLeads.length})
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowBulkAssign(true)}
+                  className="whitespace-nowrap"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Assign ({selectedLeads.length})
+                </Button>
+                <Button 
+                  variant="secondary"
+                  onClick={() => setShowBulkStageChange(true)}
+                  className="whitespace-nowrap"
+                >
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  Change Stage ({selectedLeads.length})
+                </Button>
+              </div>
             )}
           </div>
 
@@ -504,6 +543,46 @@ export default function AdminLeads() {
                   Assign Leads
                 </Button>
                 <Button variant="outline" onClick={() => setShowBulkAssign(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bulk Stage Change Card */}
+        {showBulkStageChange && (
+          <Card className="border-secondary/20 bg-secondary/5">
+            <CardHeader>
+              <CardTitle className="text-lg">Bulk Stage Change</CardTitle>
+              <CardDescription>
+                Change stage for {selectedLeads.length} selected leads
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Select value={selectedNewStage} onValueChange={setSelectedNewStage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select new stage..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STAGES.map((stage) => (
+                        <SelectItem key={stage} value={stage}>
+                          {stage}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={handleBulkStageChange} 
+                  disabled={!selectedNewStage || bulkStageChangeMutation.isPending}
+                >
+                  {bulkStageChangeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Stages
+                </Button>
+                <Button variant="outline" onClick={() => setShowBulkStageChange(false)}>
                   Cancel
                 </Button>
               </div>
