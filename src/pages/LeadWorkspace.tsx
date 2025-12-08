@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -2062,6 +2063,10 @@ const LeadWorkspace = () => {
   const [isStageModalOpen, setIsStageModalOpen] = useState(false);
   const [isAdminStageModalOpen, setIsAdminStageModalOpen] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
+  const [adminSelectedStage, setAdminSelectedStage] = useState<string>('');
+  
+  // Get profile from auth context
+  const { profile } = useAuth();
 
   // Get current user
   const currentUser = useMemo<Partial<CurrentUser>>(() => {
@@ -2084,7 +2089,7 @@ const LeadWorkspace = () => {
     }
     return {};
   }, []);
-  const isCurrentUserAdmin = currentUser.role === 'admin';
+  const isCurrentUserAdmin = profile?.role === 'admin' || currentUser.role === 'admin';
   const currentUserName = currentUser.name || 'Unknown User';
   const currentUserId = currentUser.id ?? (import.meta.env.DEV ? DEFAULT_DEV_USER.id : 1);
 
@@ -2982,6 +2987,79 @@ const LeadWorkspace = () => {
           </div>
         </div>
       </main>
+
+      {/* Admin Stage Change Dialog */}
+      <Dialog open={isAdminStageModalOpen} onOpenChange={(open) => {
+        setIsAdminStageModalOpen(open);
+        if (!open) setAdminSelectedStage('');
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Admin Stage Control</DialogTitle>
+            <DialogDescription>
+              Manually change the pipeline stage for this lead. This will be recorded in the stage history.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Stage</Label>
+              <Badge variant="secondary" className="text-sm">
+                {lead?.currentStage || 'Unknown'}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-stage-select">Select New Stage</Label>
+              <Select value={adminSelectedStage} onValueChange={setAdminSelectedStage}>
+                <SelectTrigger id="admin-stage-select">
+                  <SelectValue placeholder="Select a stage..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {PIPELINE_STAGES.map((stage) => (
+                    <SelectItem 
+                      key={stage} 
+                      value={stage}
+                      disabled={stage === lead?.currentStage}
+                    >
+                      {stage}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsAdminStageModalOpen(false);
+                setAdminSelectedStage('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (adminSelectedStage && adminSelectedStage !== lead?.currentStage) {
+                  updateStageMutation.mutate({ 
+                    stage: adminSelectedStage, 
+                    reason: 'Manual stage change by admin' 
+                  });
+                }
+              }}
+              disabled={!adminSelectedStage || adminSelectedStage === lead?.currentStage || updateStageMutation.isPending}
+            >
+              {updateStageMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Stage'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
