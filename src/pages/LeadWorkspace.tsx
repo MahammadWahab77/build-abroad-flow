@@ -201,32 +201,53 @@ const requiresFollowUpDate = (connectStatus: string, sessionStatus: string) => {
   return followUpStatuses.includes(connectStatus) || sessionStatus === 'Rescheduled';
 };
 
-// Stage progression logic
-const getNextStageFromTask = (taskData: any, currentStage: string) => {
-  const { taskType, connectStatus, callStatus, shortlistingFinalStatus, applicationProcess, trackingStatus, offerLetterStatus, visaStatus, depositStatus, sessionStatus } = taskData;
+// Stage progression logic - consolidated and matching dropdown values
+const getNextStageFromTask = (taskData: any, currentStage: string): string | null => {
+  const { 
+    taskType, 
+    connectStatus, 
+    callStatus, 
+    shortlistingFinalStatus, 
+    applicationProcess, 
+    trackingStatus, 
+    offerLetterStatus, 
+    visaStatus, 
+    depositStatus, 
+    flightStatus,
+    tuitionStatus,
+    commissionStatus,
+    applicationStatus
+  } = taskData;
 
+  // Call task - check callStatus first, then connectStatus
   if (taskType === 'Call') {
-    // Handle new call status logic
     if (callStatus) {
       switch (callStatus) {
         case 'Call Done':
-          // Only Call Done shows connect status, other logic remains the same
-          switch (connectStatus) {
-            case 'Interested': 
-              return null; // Stay in current stage for further processing
-            case 'Not Interested': 
-              return 'Not Interested';
-            case 'Planning later': 
-              return 'Planning Later';
-            case 'Yet to Decide': 
-              return 'Yet to Decide';
-            case 'Irrelevant': 
-              return 'Irrelevant Lead';
-            case 'Session Scheduling':
-              return 'Registered for Session';
-            default:
-              return null;
+          // When call is done, check connect status for outcome
+          if (connectStatus) {
+            switch (connectStatus) {
+              case 'Interested':
+                return null; // Stay in current stage, no automatic transition
+              case 'Not Interested':
+                return 'Not Interested';
+              case 'Planning later':
+                return 'Planning Later';
+              case 'Yet to Decide':
+                return 'Yet to Decide';
+              case 'Irrelevant':
+                return 'Irrelevant Lead';
+              case 'Session Scheduling':
+                return 'Registered for Session';
+              case 'DNP':
+              case 'Call back':
+              case 'Casual Follow-up':
+                return 'Contact Again';
+              default:
+                return null;
+            }
           }
+          return null;
         case 'Wrong Number':
           return 'Irrelevant Lead';
         case 'Call Back':
@@ -240,61 +261,94 @@ const getNextStageFromTask = (taskData: any, currentStage: string) => {
           return null;
       }
     }
+    return null;
   }
 
+  // Meet Done task - check connectStatus for session outcome
   if (taskType === 'Meet Done') {
-    switch (connectStatus) {
-      case 'Interested': 
-        return 'Session Completed';
-      case 'Not Interested': 
-        return 'Not Interested';
-      case 'Planning later': 
-        return 'Planning Later';
-      case 'Yet to Decide': 
-        return 'Yet to Decide';
-      case 'Irrelevant': 
-        return 'Irrelevant Lead';
-      case 'Session Scheduling': 
-        return 'Registered for Session';
-      default: 
-        return null;
+    if (connectStatus) {
+      switch (connectStatus) {
+        case 'Interested':
+          return 'Session Completed';
+        case 'Not Interested':
+          return 'Not Interested';
+        case 'Planning later':
+          return 'Planning Later';
+        case 'Yet to Decide':
+          return 'Yet to Decide';
+        case 'Irrelevant':
+          return 'Irrelevant Lead';
+        case 'Session Scheduling':
+          return 'Registered for Session';
+        default:
+          return null;
+      }
     }
+    return null;
   }
-  
+
+  // Shortlisting task - check if sent to students
   if (taskType === 'Shortlisting' && shortlistingFinalStatus === 'Sent to students') {
     return 'Shortlisted Univ.';
   }
 
+  // Application Process task - any application process triggers this stage
   if (taskType === 'Application Process' && applicationProcess) {
     return 'Application in Progress';
   }
 
-  if (taskType === 'Tracking') {
-    if (trackingStatus === 'Offer Letter Status' && offerLetterStatus) {
-      return 'Offer Letter Received';
-    }
-    if (trackingStatus === 'VISA Tracking' && visaStatus === 'Approved') {
-      return 'Visa Received';
-    }
-    if (trackingStatus === 'Deposit Paid' && depositStatus === 'Paid') {
-      return 'Deposit Paid';
-    }
-    if (trackingStatus === 'Flight and Accommodation' && taskData.flightStatus === 'Booked') {
-      return 'Flight and Accommodation Booked';
-    }
-    if (trackingStatus === 'Tuition Fee' && taskData.tuitionStatus === 'Paid') {
-      return 'Tuition Fee Paid';
-    }
-    if (trackingStatus === 'Commission' && taskData.commissionStatus === 'Received') {
-      return 'Commission Received';
-    }
-  }
-
+  // Submit Documents task
   if (taskType === 'Submit Documents') {
     return 'Docs Submitted';
   }
 
-  return null; // Return null if no stage change is triggered
+  // Tracking task - check various tracking statuses
+  if (taskType === 'Tracking') {
+    // Application status tracking
+    if (trackingStatus === 'Application Status') {
+      // Match dropdown values: 'Application submitted to KC', 'Application submitted to university', etc.
+      if (applicationStatus === 'Application submitted to KC' || 
+          applicationStatus === 'Application submitted to university' ||
+          applicationStatus === 'In Progress') {
+        return 'Application in Progress';
+      }
+      if (applicationStatus === 'Accepted') {
+        return 'Offer Letter Received';
+      }
+    }
+    
+    // Offer letter tracking
+    if (trackingStatus === 'Offer Letter Status' && offerLetterStatus) {
+      return 'Offer Letter Received';
+    }
+    
+    // Visa tracking
+    if (trackingStatus === 'VISA Tracking' && visaStatus === 'Approved') {
+      return 'Visa Received';
+    }
+    
+    // Deposit tracking
+    if (trackingStatus === 'Deposit Paid' && depositStatus === 'Paid') {
+      return 'Deposit Paid';
+    }
+    
+    // Flight and accommodation tracking
+    if (trackingStatus === 'Flight and Accommodation' && flightStatus === 'Booked') {
+      return 'Flight and Accommodation Booked';
+    }
+    
+    // Tuition fee tracking
+    if (trackingStatus === 'Tuition Fee' && tuitionStatus === 'Paid') {
+      return 'Tuition Fee Paid';
+    }
+    
+    // Commission tracking
+    if (trackingStatus === 'Commission' && commissionStatus === 'Received') {
+      return 'Commission Received';
+    }
+  }
+
+  return null; // No stage change triggered
 };
 
 // Task form schema with conditional validation
@@ -2262,6 +2316,7 @@ const LeadWorkspace = () => {
           user_id: currentUserId,
           task_type: taskData.taskType,
           call_type: taskData.callType || null,
+          call_status: taskData.callStatus || null,
           connect_status: taskData.connectStatus || null,
           session_status: taskData.sessionStatus || null,
           session_date: taskData.sessionDate || null,
@@ -2287,112 +2342,8 @@ const LeadWorkspace = () => {
 
       if (error) throw error;
 
-      // Determine if stage should be updated based on task data
-      let newStage: string | null = null;
-      let stageReason = '';
-
-      // Handle Call task stage changes
-      if (taskData.taskType === 'Call' && taskData.connectStatus) {
-        switch (taskData.connectStatus) {
-          case 'Interested':
-            newStage = 'Interested';
-            stageReason = 'Lead showed interest during call';
-            break;
-          case 'Not Interested':
-            newStage = 'Not Interested';
-            stageReason = 'Lead not interested';
-            break;
-          case 'Planning Later':
-            newStage = 'Planning Later';
-            stageReason = 'Lead planning for later intake';
-            break;
-          case 'Yet to Decide':
-            newStage = 'Yet to Decide';
-            stageReason = 'Lead needs more time to decide';
-            break;
-          case 'Casual Follow-up':
-            newStage = 'Casual Follow-up';
-            stageReason = 'Casual follow-up required';
-            break;
-        }
-      }
-
-      // Handle session completed stage change
-      if (taskData.taskType === 'Meet Done' && taskData.sessionStatus === 'Session Done') {
-        newStage = 'Session Completed';
-        stageReason = 'Counseling session completed';
-      }
-
-      // Handle shortlisting stage
-      if (taskData.shortlistingStatus === 'Completed') {
-        newStage = 'Shortlisted Univ.';
-        stageReason = 'University shortlisting completed';
-      }
-
-      // Handle application stages
-      if (taskData.applicationStatus === 'Submitted' || taskData.applicationStatus === 'In Progress') {
-        newStage = 'Application in Progress';
-        stageReason = 'Application process started';
-      }
-
-      if (taskData.offerLetterStatus) {
-        newStage = 'Offer Letter Received';
-        stageReason = 'Offer letter received from university';
-      }
-
-      // Handle visa approval
-      if (taskData.trackingStatus === 'VISA Tracking' && taskData.visaStatus === 'Approved') {
-        newStage = 'Visa Received';
-        stageReason = 'Visa approved';
-      }
-
-      // Handle deposit paid
-      if (taskData.trackingStatus === 'Deposit Paid' && taskData.depositStatus === 'Paid') {
-        newStage = 'Deposit Paid';
-        stageReason = 'Deposit payment completed';
-      }
-
-      // Handle flight and accommodation booked
-      if (taskData.trackingStatus === 'Flight and Accommodation' && taskData.flightStatus === 'Booked') {
-        newStage = 'Flight and Accommodation Booked';
-        stageReason = 'Flight and accommodation booked';
-      }
-
-      // Handle tuition fee paid
-      if (taskData.trackingStatus === 'Tuition Fee' && taskData.tuitionStatus === 'Paid') {
-        newStage = 'Tuition Fee Paid';
-        stageReason = 'Tuition fee payment completed';
-      }
-
-      // Handle commission received
-      if (taskData.trackingStatus === 'Commission' && taskData.commissionStatus === 'Received') {
-        newStage = 'Commission Received';
-        stageReason = 'Commission received from university';
-      }
-
-      // Update stage if needed
-      if (newStage && newStage !== lead?.currentStage) {
-        // Update lead stage
-        const { error: leadError } = await supabase
-          .from('leads')
-          .update({ current_stage: newStage })
-          .eq('id', leadIdNum);
-
-        if (leadError) throw leadError;
-
-        // Add stage history
-        const { error: historyError } = await supabase
-          .from('stage_history')
-          .insert({
-            lead_id: leadIdNum,
-            user_id: currentUserId,
-            from_stage: lead?.currentStage || null,
-            to_stage: newStage,
-            reason: stageReason,
-          });
-
-        if (historyError) throw historyError;
-      }
+      // Stage updates are handled by handleTaskComplete using getNextStageFromTask
+      // This ensures consistent stage logic and proper dropdown value matching
 
       return taskResult;
     },

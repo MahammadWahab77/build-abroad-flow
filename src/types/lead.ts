@@ -2,6 +2,7 @@ export interface TaskData {
   id?: number;
   taskType?: string;
   callType?: string;
+  callStatus?: string;
   connectStatus?: string;
   country?: string;
   intake?: string;
